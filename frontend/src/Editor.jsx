@@ -4,16 +4,21 @@ import {
   Circle, Menu, X, Monitor, Smartphone, Tablet, Code2, Play, 
   Undo, Redo, Layers, Settings, Save, Download, Eye, Zap,
   Plus, Trash2, Copy, Move, AlignLeft, AlignCenter, AlignRight,
-  ChevronDown, Grid, Columns, Rows, Box
+  ChevronDown, Grid, Columns, Box, Database, Users, Globe2,
+  GitBranch, Package, Rocket, Languages, Clock, Activity
 } from 'lucide-react';
 
 export default function OvioEditor() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [viewport, setViewport] = useState('desktop'); // desktop, tablet, mobile
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [viewport, setViewport] = useState('desktop');
   const [selectedComponent, setSelectedComponent] = useState(null);
   const [canvasComponents, setCanvasComponents] = useState([]);
   const [aiPrompt, setAiPrompt] = useState('');
-  const [showCodeView, setShowCodeView] = useState(false);
+  const [activeTab, setActiveTab] = useState('components');
+  const [showAICopilot, setShowAICopilot] = useState(false);
+  const [copilotCommand, setCopilotCommand] = useState('');
+  const [isCollaborating, setIsCollaborating] = useState(true);
 
   const componentLibrary = [
     { id: 'container', name: 'Container', icon: Square, category: 'Layout' },
@@ -25,6 +30,25 @@ export default function OvioEditor() {
     { id: 'image', name: 'Image', icon: Image, category: 'Content' },
     { id: 'card', name: 'Card', icon: Layout, category: 'Components' },
     { id: 'hero', name: 'Hero Section', icon: Layout, category: 'Components' },
+  ];
+
+  const relationModels = [
+    { id: 'users', name: 'Users', fields: ['email', 'password', 'name'], icon: Users },
+    { id: 'products', name: 'Products', fields: ['title', 'price', 'stock'], icon: Package },
+    { id: 'orders', name: 'Orders', fields: ['userId', 'total', 'status'], icon: Activity },
+  ];
+
+  const plugins = [
+    { id: 'stripe', name: 'Stripe Payments', icon: '💳', installed: true },
+    { id: 'google-auth', name: 'Google Login', icon: '🔐', installed: true },
+    { id: 'sendgrid', name: 'SendGrid Email', icon: '📧', installed: false },
+    { id: 'twilio', name: 'Twilio SMS', icon: '📱', installed: false },
+  ];
+
+  const collaborators = [
+    { name: 'John', color: 'bg-blue-500', active: true },
+    { name: 'Sarah', color: 'bg-purple-500', active: true },
+    { name: 'Mike', color: 'bg-green-500', active: false },
   ];
 
   const viewportSizes = {
@@ -55,9 +79,16 @@ export default function OvioEditor() {
 
   const handleAIGenerate = () => {
     if (aiPrompt.trim()) {
-      // Simulate AI generation
       alert(`AI is generating: ${aiPrompt}`);
       setAiPrompt('');
+    }
+  };
+
+  const handleCopilotCommand = () => {
+    if (copilotCommand.trim()) {
+      alert(`Executing: ${copilotCommand}`);
+      setCopilotCommand('');
+      setShowAICopilot(false);
     }
   };
 
@@ -67,24 +98,24 @@ export default function OvioEditor() {
 
     switch(comp.id.split('-')[0]) {
       case 'text':
-        return <div key={comp.id} className={baseClasses} style={style}>Sample Text</div>;
+        return <div key={comp.uniqueId} className={baseClasses} style={style}>Sample Text</div>;
       case 'heading':
-        return <div key={comp.id} className={`${baseClasses} font-bold text-2xl`} style={style}>Heading</div>;
+        return <div key={comp.uniqueId} className={`${baseClasses} font-bold text-2xl`} style={style}>Heading</div>;
       case 'button':
-        return <button key={comp.id} className={`${baseClasses} bg-black text-white px-6 py-2`} style={style}>Button</button>;
+        return <button key={comp.uniqueId} className={`${baseClasses} bg-black text-white px-6 py-2`} style={style}>Button</button>;
       case 'image':
-        return <div key={comp.id} className={`${baseClasses} w-48 h-32 bg-gray-200`} style={style}>Image</div>;
+        return <div key={comp.uniqueId} className={`${baseClasses} w-48 h-32 bg-gray-200`} style={style}>Image</div>;
       case 'card':
-        return <div key={comp.id} className={`${baseClasses} w-64 h-48 shadow-lg`} style={style}>Card Component</div>;
+        return <div key={comp.uniqueId} className={`${baseClasses} w-64 h-48 shadow-lg`} style={style}>Card Component</div>;
       default:
-        return <div key={comp.id} className={baseClasses} style={style}>{comp.name}</div>;
+        return <div key={comp.uniqueId} className={baseClasses} style={style}>{comp.name}</div>;
     }
   };
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Top Navigation */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-30">
+      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between z-30">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
@@ -92,7 +123,7 @@ export default function OvioEditor() {
             </div>
             <span className="text-xl font-light tracking-wider">OVIO</span>
           </div>
-          <div className="text-sm text-gray-500">/ Untitled Project</div>
+          <div className="text-sm text-gray-500">/ E-Commerce Dashboard</div>
         </div>
 
         {/* Viewport Switcher */}
@@ -103,113 +134,334 @@ export default function OvioEditor() {
               <button
                 key={key}
                 onClick={() => setViewport(key)}
-                className={`px-4 py-2 rounded-md flex items-center gap-2 transition-all ${
+                className={`px-3 py-2 rounded-md flex items-center gap-2 transition-all ${
                   viewport === key ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
                 }`}
               >
                 <IconComponent className="w-4 h-4" />
-                <span className="text-sm hidden md:inline">{val.label}</span>
+                <span className="text-xs hidden md:inline">{val.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Collaborators */}
+          {isCollaborating && (
+            <div className="flex items-center gap-2 mr-4">
+              <div className="flex -space-x-2">
+                {collaborators.map((collab, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-8 h-8 ${collab.color} rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold ${
+                      collab.active ? 'ring-2 ring-green-400' : ''
+                    }`}
+                    title={collab.name}
+                  >
+                    {collab.name[0]}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 text-xs text-green-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Live
+              </div>
+            </div>
+          )}
+
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-all" title="Undo">
-            <Undo className="w-5 h-5" />
+            <Undo className="w-4 h-4" />
           </button>
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-all" title="Redo">
-            <Redo className="w-5 h-5" />
+            <Redo className="w-4 h-4" />
           </button>
           <div className="w-px h-6 bg-gray-300"></div>
+          
+          {/* AI Copilot Button */}
           <button 
-            onClick={() => setShowCodeView(!showCodeView)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-all" 
-            title="Code View"
+            onClick={() => setShowAICopilot(!showAICopilot)}
+            className="px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 text-sm"
           >
-            <Code2 className="w-5 h-5" />
+            <Zap className="w-4 h-4" />
+            <span className="hidden md:inline">AI Copilot</span>
           </button>
+
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-all" title="Preview">
-            <Eye className="w-5 h-5" />
+            <Eye className="w-4 h-4" />
           </button>
-          <button className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2">
-            <Save className="w-4 h-4" />
-            Save
+          
+          {/* Version Control */}
+          <button className="px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-sm">
+            <GitBranch className="w-4 h-4" />
+            <span className="hidden md:inline">main</span>
+          </button>
+
+          {/* Deploy */}
+          <button className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2 text-sm">
+            <Rocket className="w-4 h-4" />
+            <span className="hidden md:inline">Deploy</span>
           </button>
         </div>
       </nav>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Component Library */}
-        <aside className={`bg-white border-r border-gray-200 transition-all duration-300 ${
-          sidebarOpen ? 'w-80' : 'w-0'
-        } overflow-hidden`}>
-          <div className="p-6 space-y-6">
-            {/* AI Prompt */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-bold tracking-wider text-gray-700">
-                <Zap className="w-4 h-4" />
-                AI ASSISTANT
+      {/* AI Copilot Modal */}
+      {showAICopilot && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">AI Copilot</h2>
+                  <p className="text-sm text-gray-600">Execute commands with natural language</p>
+                </div>
               </div>
-              <div className="relative">
-                <textarea
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder="Describe what you want to build... (e.g., 'Create a hero section with a heading, description, and two buttons')"
-                  className="w-full p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black transition-all text-sm"
-                  rows={4}
-                />
-                <button
-                  onClick={handleAIGenerate}
-                  className="absolute bottom-3 right-3 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2 text-sm"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Generate
-                </button>
-              </div>
+              <button onClick={() => setShowAICopilot(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center gap-2 text-sm font-bold tracking-wider text-gray-700 mb-4">
-                <Layers className="w-4 h-4" />
-                COMPONENTS
-              </div>
-
-              {/* Component Categories */}
-              <div className="space-y-6">
-                {['Layout', 'Content', 'Components'].map(category => (
-                  <div key={category}>
-                    <div className="text-xs tracking-widest text-gray-400 mb-3">{category.toUpperCase()}</div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {componentLibrary
-                        .filter(c => c.category === category)
-                        .map(component => {
-                          const IconComponent = component.icon;
-                          return (
-                            <div
-                              key={component.id}
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, component)}
-                              className="p-4 border border-gray-200 rounded-lg hover:border-black hover:shadow-md transition-all cursor-move bg-white"
-                            >
-                              <IconComponent className="w-6 h-6 mb-2 text-gray-700" />
-                              <div className="text-xs font-medium">{component.name}</div>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  </div>
+            <div className="space-y-4 mb-6">
+              <div className="text-sm font-medium text-gray-700">Try these commands:</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'Add Google Login',
+                  'Create user dashboard',
+                  'Add Stripe payment',
+                  'Setup email notifications',
+                  'Create product table',
+                  'Add dark mode'
+                ].map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCopilotCommand(cmd)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-all"
+                  >
+                    {cmd}
+                  </button>
                 ))}
               </div>
             </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={copilotCommand}
+                onChange={(e) => setCopilotCommand(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleCopilotCommand()}
+                placeholder="Type your command..."
+                className="w-full p-4 pr-24 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 transition-all"
+              />
+              <button
+                onClick={handleCopilotCommand}
+                className="absolute right-2 top-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Execute
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Sidebar */}
+        <aside className={`bg-white border-r border-gray-200 transition-all duration-300 ${
+          sidebarOpen ? 'w-80' : 'w-0'
+        } overflow-hidden flex flex-col`}>
+          {/* Sidebar Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab('components')}
+              className={`flex-1 px-4 py-3 text-xs font-medium transition-all ${
+                activeTab === 'components' ? 'bg-gray-50 border-b-2 border-black' : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <Layers className="w-4 h-4" />
+                <span>Components</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('relations')}
+              className={`flex-1 px-4 py-3 text-xs font-medium transition-all ${
+                activeTab === 'relations' ? 'bg-gray-50 border-b-2 border-black' : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <Database className="w-4 h-4" />
+                <span>Relations</span>
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('plugins')}
+              className={`flex-1 px-4 py-3 text-xs font-medium transition-all ${
+                activeTab === 'plugins' ? 'bg-gray-50 border-b-2 border-black' : 'hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-1">
+                <Package className="w-4 h-4" />
+                <span>Plugins</span>
+              </div>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-auto p-6 space-y-6">
+            {/* Components Tab */}
+            {activeTab === 'components' && (
+              <>
+                {/* AI Prompt */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-gray-700">
+                    <Zap className="w-4 h-4" />
+                    AI BUILDER
+                  </div>
+                  <div className="relative">
+                    <textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Describe what you want to build..."
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:border-black transition-all text-sm"
+                      rows={3}
+                    />
+                    <button
+                      onClick={handleAIGenerate}
+                      className="absolute bottom-2 right-2 px-3 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all flex items-center gap-2 text-xs"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generate
+                    </button>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-200 pt-6">
+                  {/* Component Categories */}
+                  <div className="space-y-6">
+                    {['Layout', 'Content', 'Components'].map(category => (
+                      <div key={category}>
+                        <div className="text-xs tracking-widest text-gray-400 mb-3">{category.toUpperCase()}</div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {componentLibrary
+                            .filter(c => c.category === category)
+                            .map(component => {
+                              const IconComponent = component.icon;
+                              return (
+                                <div
+                                  key={component.id}
+                                  draggable
+                                  onDragStart={(e) => handleDragStart(e, component)}
+                                  className="p-3 border border-gray-200 rounded-lg hover:border-black hover:shadow-md transition-all cursor-move bg-white"
+                                >
+                                  <IconComponent className="w-5 h-5 mb-2 text-gray-700" />
+                                  <div className="text-xs font-medium">{component.name}</div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Relations Tab */}
+            {activeTab === 'relations' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-xs font-bold tracking-wider text-gray-700">DATA MODELS</div>
+                  <button className="p-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-all">
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {relationModels.map(model => {
+                  const IconComponent = model.icon;
+                  return (
+                    <div key={model.id} className="p-4 border border-gray-200 rounded-lg hover:border-black transition-all cursor-pointer">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-bold text-sm">{model.name}</div>
+                          <div className="text-xs text-gray-500">{model.fields.length} fields</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {model.fields.map(field => (
+                          <span key={field} className="px-2 py-1 bg-gray-100 rounded text-xs">
+                            {field}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="text-xs text-gray-500 mb-3">FEATURES</div>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Auto Schema Generation
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      Real-time Sync
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      AI Data Mapping
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Plugins Tab */}
+            {activeTab === 'plugins' && (
+              <div className="space-y-4">
+                <div className="text-xs font-bold tracking-wider text-gray-700 mb-4">MARKETPLACE</div>
+                
+                {plugins.map(plugin => (
+                  <div key={plugin.id} className="p-4 border border-gray-200 rounded-lg hover:border-black transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">{plugin.icon}</div>
+                      <div className="flex-1">
+                        <div className="font-bold text-sm">{plugin.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {plugin.installed ? 'Installed' : 'Not installed'}
+                        </div>
+                      </div>
+                      <button
+                        className={`px-3 py-1 rounded-lg text-xs transition-all ${
+                          plugin.installed
+                            ? 'bg-gray-100 text-gray-700'
+                            : 'bg-black text-white hover:bg-gray-800'
+                        }`}
+                      >
+                        {plugin.installed ? 'Installed' : 'Install'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-black transition-all text-sm text-gray-600 hover:text-black">
+                  Browse More Plugins
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
         {/* Toggle Sidebar Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute left-80 top-24 z-20 bg-white border border-gray-200 rounded-r-lg p-2 hover:bg-gray-50 transition-all shadow-lg"
+          className="absolute left-0 top-32 z-20 bg-white border border-gray-200 rounded-r-lg p-2 hover:bg-gray-50 transition-all shadow-lg"
           style={{ left: sidebarOpen ? '320px' : '0px' }}
         >
           {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -239,90 +491,98 @@ export default function OvioEditor() {
           </div>
         </main>
 
-        {/* Right Sidebar - Properties Panel */}
-        <aside className="w-80 bg-white border-l border-gray-200 p-6 overflow-auto">
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 text-sm font-bold tracking-wider text-gray-700">
-              <Settings className="w-4 h-4" />
-              PROPERTIES
+        {/* Right Sidebar */}
+        <aside className={`bg-white border-l border-gray-200 transition-all duration-300 ${
+          rightSidebarOpen ? 'w-80' : 'w-0'
+        } overflow-hidden`}>
+          <div className="p-6 space-y-6 h-full overflow-auto">
+            {/* Export Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-gray-700">
+                <Download className="w-4 h-4" />
+                EXPORT CODE
+              </div>
+              
+              <div className="space-y-2">
+                {[
+                  { name: 'React', icon: '⚛️' },
+                  { name: 'Flutter', icon: '📱' },
+                  { name: 'Vue.js', icon: '💚' },
+                  { name: 'Angular', icon: '🅰️' }
+                ].map(framework => (
+                  <button
+                    key={framework.name}
+                    className="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-3 text-sm"
+                  >
+                    <span className="text-xl">{framework.icon}</span>
+                    <span className="font-medium">{framework.name}</span>
+                    <Download className="w-4 h-4 ml-auto" />
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {selectedComponent ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block">Component Type</label>
-                  <input 
-                    type="text" 
-                    value={selectedComponent.name} 
-                    disabled 
-                    className="w-full p-2 border border-gray-200 rounded-lg bg-gray-50 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block">Width</label>
-                  <input 
-                    type="text" 
-                    placeholder="auto" 
-                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block">Height</label>
-                  <input 
-                    type="text" 
-                    placeholder="auto" 
-                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-black"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-2 block">Alignment</label>
-                  <div className="flex gap-2">
-                    <button className="flex-1 p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                      <AlignLeft className="w-4 h-4 mx-auto" />
-                    </button>
-                    <button className="flex-1 p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                      <AlignCenter className="w-4 h-4 mx-auto" />
-                    </button>
-                    <button className="flex-1 p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                      <AlignRight className="w-4 h-4 mx-auto" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-gray-400 text-center py-12">
-                Select a component to edit its properties
-              </div>
-            )}
-
             <div className="border-t border-gray-200 pt-6">
-              <div className="text-xs text-gray-500 mb-3">QUICK ACTIONS</div>
+              <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-gray-700 mb-4">
+                <Globe2 className="w-4 h-4" />
+                DEPLOYMENT
+              </div>
+              
+              <div className="space-y-3">
+                <button className="w-full p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 text-sm">
+                  <Rocket className="w-4 h-4" />
+                  Deploy to Web
+                </button>
+                <button className="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm">
+                  <Smartphone className="w-4 h-4" />
+                  Build Mobile App
+                </button>
+              </div>
+            </div>
+
+            {/* Additional Features */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="text-xs text-gray-500 mb-3">FEATURES</div>
               <div className="space-y-2">
                 <button className="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-sm">
-                  <Copy className="w-4 h-4" />
-                  Duplicate
+                  <Languages className="w-4 h-4" />
+                  AI Localization
                 </button>
                 <button className="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-sm">
-                  <Move className="w-4 h-4" />
-                  Reorder
+                  <GitBranch className="w-4 h-4" />
+                  Version History
                 </button>
-                <button className="w-full p-3 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-all flex items-center gap-2 text-sm">
-                  <Trash2 className="w-4 h-4" />
-                  Delete
+                <button className="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2 text-sm">
+                  <Clock className="w-4 h-4" />
+                  Snapshots
                 </button>
               </div>
             </div>
           </div>
         </aside>
+
+        {/* Toggle Right Sidebar Button */}
+        <button
+          onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+          className="absolute right-0 top-32 z-20 bg-white border border-gray-200 rounded-l-lg p-2 hover:bg-gray-50 transition-all shadow-lg"
+          style={{ right: rightSidebarOpen ? '320px' : '0px' }}
+        >
+          {rightSidebarOpen ? <X className="w-4 h-4" /> : <Settings className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Bottom Status Bar */}
       <div className="bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between text-xs text-gray-500">
         <div className="flex items-center gap-6">
           <span>{canvasComponents.length} components</span>
-          <span>Last saved: Just now</span>
+          <span className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            Auto-saved
+          </span>
+          <span>Last deployed: 2 hours ago</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
+          <span>Database: Connected</span>
           <span>Zoom: 100%</span>
           <button className="hover:text-black transition-colors">Keyboard Shortcuts</button>
         </div>
