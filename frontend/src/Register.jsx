@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, User, Briefcase, Check } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -24,8 +25,43 @@ export default function RegisterPage() {
     if (step === 1) setStep(2);
   };
 
-  const handleSubmit = () => {
-    console.log('Registration submitted:', formData);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+  const handleSubmit = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      // Derive a simple username from full name or email
+      const username = (formData.fullName || formData.email).replace(/\s+/g, '').toLowerCase();
+      const payload = {
+        email: formData.email,
+        username,
+        password: formData.password,
+        name: formData.fullName,
+      };
+
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
+      const token = data.token;
+      if (token) {
+        localStorage.setItem('token', token);
+        navigate('/projects');
+      } else {
+        throw new Error('No token returned');
+      }
+    } catch (err) {
+      setError(err.message || 'Unexpected error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const roles = [

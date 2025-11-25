@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
@@ -7,8 +8,35 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleSubmit = () => {
-    console.log('Form submitted:', { email, password, isSignUp });
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+  const handleSubmit = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      const token = data.token;
+      if (token) {
+        localStorage.setItem('token', token);
+        navigate('/projects');
+      } else {
+        throw new Error('No token returned');
+      }
+    } catch (err) {
+      setError(err.message || 'Unexpected error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -142,13 +170,17 @@ export default function LoginPage() {
               </p>
             )}
 
-            <button
-              onClick={handleSubmit}
-              className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all active:scale-95 font-medium flex items-center justify-center gap-2 group"
-            >
-              {isSignUp ? 'Create Account' : 'Sign In'}
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <div>
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all active:scale-95 font-medium flex items-center justify-center gap-2 group disabled:opacity-60"
+              >
+                {loading ? 'Signing in...' : isSignUp ? 'Create Account' : 'Sign In'}
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+              {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
+            </div>
           </div>
 
           {/* Toggle Sign Up / Sign In */}

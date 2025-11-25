@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Link } from 'react-router-dom';
 import { Sparkles, Code2, Zap, Users, Database, Blocks, ArrowRight, Check, Menu, X, Play, Cpu, Globe2, GitBranch, Puzzle, MessageSquare, BarChart3, Lock, Rocket, Command } from 'lucide-react';
+import LoginPage from './Login.jsx';
+import RegisterPage from './Register.jsx';
+import ProjectsPage from './Projects.jsx';
 
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,9 +49,8 @@ export default function App() {
               <a href="#platform" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Platform</a>
               <a href="#pricing" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Pricing</a>
               <a href="#docs" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Docs</a>
-              <button className="px-6 py-2 bg-black text-white text-sm tracking-wider hover:bg-gray-800 transition-all active:scale-95">
-                Start Free
-              </button>
+              <Link to="/login" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Log in</Link>
+              <Link to="/register" className="px-6 py-2 bg-black text-white text-sm tracking-wider hover:bg-gray-800 transition-all active:scale-95">Register</Link>
             </div>
 
             <button className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -64,7 +67,8 @@ export default function App() {
             <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
             <a href="#platform" onClick={() => setMobileMenuOpen(false)}>Platform</a>
             <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
-            <button className="px-8 py-3 bg-black text-white">Start Free</button>
+            <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Log in</Link>
+            <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="px-8 py-3 bg-black text-white">Register</Link>
           </div>
         )}
       </nav>
@@ -99,13 +103,13 @@ export default function App() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8" style={{ animation: 'fadeIn 1s ease-out 1s backwards' }}>
-            <button className="group px-10 py-4 bg-black text-white hover:shadow-2xl transition-all active:scale-95">
+            <Link to="/register" className="group px-10 py-4 bg-black text-white hover:shadow-2xl transition-all active:scale-95">
               <span className="flex items-center gap-2">
                 <Command className="w-4 h-4" />
                 Start Building Free
                 <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
               </span>
-            </button>
+            </Link>
             <button className="group px-10 py-4 border-2 border-black hover:bg-black hover:text-white transition-all active:scale-95">
               <span className="flex items-center gap-2">
                 <Play size={16} />
@@ -383,7 +387,7 @@ export default function App() {
               </div>
             ))}
           </div>
-
+          
           <div className="text-center mt-16">
             <p className="text-gray-400 mb-4">Need custom enterprise solutions?</p>
             <button className="px-8 py-3 border border-white hover:bg-white hover:text-black transition-all">
