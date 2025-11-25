@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Sparkles, Code2, Zap, Users, Database, Blocks, ArrowRight, Check, Menu, X, Play, Cpu, Globe2, GitBranch, Puzzle, MessageSquare, BarChart3, Lock, Rocket, Command } from 'lucide-react';
 import LoginPage from './Login.jsx';
 import RegisterPage from './Register.jsx';
@@ -9,6 +9,7 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [activeTab, setActiveTab] = useState('developer');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -110,7 +111,7 @@ export default function App() {
                 <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
               </span>
             </Link>
-            <button className="group px-10 py-4 border-2 border-black hover:bg-black hover:text-white transition-all active:scale-95">
+            <button className="group px-10 py-4 border-2 border-black hover:bg-black hover:text-white transition-all active:scale-95" onClick={() => navigate('/demo')}>
               <span className="flex items-center gap-2">
                 <Play size={16} />
                 Watch Demo
@@ -381,9 +382,9 @@ export default function App() {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full py-4 rounded-lg font-bold tracking-wider transition-all active:scale-95 ${plan.popular ? 'bg-black text-white hover:bg-gray-800' : 'border-2 border-black hover:bg-black hover:text-white'}`}>
+                <Link to="/register" className={`w-full inline-block text-center py-4 rounded-lg font-bold tracking-wider transition-all active:scale-95 ${plan.popular ? 'bg-black text-white hover:bg-gray-800' : 'border-2 border-black hover:bg-black hover:text-white'}`}>
                   {plan.price === "0" ? "Start Free" : "Start 14-Day Trial"}
-                </button>
+                </Link>
               </div>
             ))}
           </div>
@@ -435,11 +436,11 @@ export default function App() {
             Join thousands of developers who are shipping faster with Ovio. Start building for free today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <button className="px-12 py-5 bg-white text-black font-bold tracking-wider hover:bg-gray-100 transition-all active:scale-95 flex items-center gap-2">
+            <Link to="/register" className="px-12 py-5 bg-white text-black font-bold tracking-wider hover:bg-gray-100 transition-all active:scale-95 flex items-center gap-2 rounded text-center">
               Start Building Free
               <ArrowRight className="w-5 h-5" />
-            </button>
-            <button className="px-12 py-5 border-2 border-white hover:bg-white hover:text-black transition-all active:scale-95 flex items-center gap-2">
+            </Link>
+            <button className="px-12 py-5 border-2 border-white hover:bg-white hover:text-black transition-all active:scale-95 flex items-center gap-2" onClick={() => navigate('/contact')}>
               <MessageSquare className="w-5 h-5" />
               Talk to Sales
             </button>
