@@ -18,6 +18,17 @@ export default function App() {
   }, []);
 
   return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/projects" element={<ProjectsPage />} />
+      <Route path="/" element={<LandingPage mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} scrollY={scrollY} activeTab={activeTab} setActiveTab={setActiveTab} navigate={navigate} />} />
+    </Routes>
+  );
+}
+
+function LandingPage({ mobileMenuOpen, setMobileMenuOpen, scrollY, activeTab, setActiveTab, navigate }) {
+  return (
     <div className="bg-white text-gray-900 overflow-x-hidden">
       <style>{`
         @keyframes slideUp {

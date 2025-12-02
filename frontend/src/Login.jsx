@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
 
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -16,15 +15,35 @@ export default function LoginPage() {
 
   const handleSubmit = async () => {
     setError('');
+    
+    // Validation
+    if (!email.trim() || !password.trim()) {
+      setError('Email and password are required');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email: email.trim().toLowerCase(), 
+          password 
+        }),
       });
+      
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
+      
+      if (!res.ok) {
+        throw new Error(data.error || `Login failed with status ${res.status}`);
+      }
+      
       const token = data.token;
       if (token) {
         localStorage.setItem('token', token);
@@ -33,7 +52,8 @@ export default function LoginPage() {
         throw new Error('No token returned');
       }
     } catch (err) {
-      setError(err.message || 'Unexpected error');
+      console.error('Login error:', err);
+      setError(err.message || 'Unexpected error. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -55,15 +75,15 @@ export default function LoginPage() {
       {/* Header */}
       <nav className="w-full py-6 px-6 lg:px-12">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer">
+          <Link to="/" className="flex items-center gap-3 cursor-pointer hover:opacity-60 transition-opacity">
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div className="text-2xl font-light tracking-wider">OVIO</div>
-          </div>
-          <button className="text-sm tracking-wider hover:opacity-60 transition-opacity">
+          </Link>
+          <Link to="/" className="text-sm tracking-wider hover:opacity-60 transition-opacity">
             ← Back to Home
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -76,13 +96,9 @@ export default function LoginPage() {
               <Sparkles className="w-4 h-4" />
               <span className="text-sm font-medium">AI-Powered App Builder</span>
             </div>
-            <h1 className="text-4xl font-bold mb-3">
-              {isSignUp ? 'Create Your Account' : 'Welcome Back'}
-            </h1>
+            <h1 className="text-4xl font-bold mb-3">Welcome Back</h1>
             <p className="text-gray-600">
-              {isSignUp 
-                ? 'Start building production-ready apps in minutes' 
-                : 'Continue building amazing products'}
+              Continue building amazing products
             </p>
           </div>
 
@@ -149,26 +165,15 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {!isSignUp && (
-              <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
-                  <span className="text-gray-600">Remember me</span>
-                </label>
-                <button className="text-black hover:opacity-60 transition-opacity font-medium">
-                  Forgot password?
-                </button>
-              </div>
-            )}
-
-            {isSignUp && (
-              <p className="text-xs text-gray-500">
-                By creating an account, you agree to our{' '}
-                <button className="text-black hover:opacity-60 transition-opacity">Terms of Service</button>
-                {' '}and{' '}
-                <button className="text-black hover:opacity-60 transition-opacity">Privacy Policy</button>
-              </p>
-            )}
+            <div className="flex items-center justify-between text-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                <span className="text-gray-600">Remember me</span>
+              </label>
+              <button className="text-black hover:opacity-60 transition-opacity font-medium">
+                Forgot password?
+              </button>
+            </div>
 
             <div>
               <button
@@ -176,7 +181,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all active:scale-95 font-medium flex items-center justify-center gap-2 group disabled:opacity-60"
               >
-                {loading ? 'Signing in...' : isSignUp ? 'Create Account' : 'Sign In'}
+                {loading ? 'Signing in...' : 'Sign In'}
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
               {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
@@ -185,27 +190,13 @@ export default function LoginPage() {
 
           {/* Toggle Sign Up / Sign In */}
           <div className="mt-6 text-center text-sm text-gray-600">
-            {isSignUp ? (
-              <>
-                Already have an account?{' '}
-                <button
-                  onClick={() => setIsSignUp(false)}
-                  className="text-black font-medium hover:opacity-60 transition-opacity"
-                >
-                  Sign in
-                </button>
-              </>
-            ) : (
-              <>
-                Don't have an account?{' '}
-                <button
-                  onClick={() => setIsSignUp(true)}
-                  className="text-black font-medium hover:opacity-60 transition-opacity"
-                >
-                  Sign up for free
-                </button>
-              </>
-            )}
+            Don't have an account?{' '}
+            <Link
+              to="/register"
+              className="text-black font-medium hover:opacity-60 transition-opacity"
+            >
+              Sign up for free
+            </Link>
           </div>
 
           {/* Trust Indicators */}

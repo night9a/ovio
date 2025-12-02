@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Sparkles, Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, User, Briefcase, Check } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -32,15 +32,67 @@ export default function RegisterPage() {
 
   const handleSubmit = async () => {
     setError('');
+
+    // Validation
+    if (!formData.fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!formData.password) {
+      setError('Password is required');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter');
+      return;
+    }
+
+    if (!/[0-9]/.test(formData.password)) {
+      setError('Password must contain at least one number');
+      return;
+    }
+
+    if (!/[!@#$%^&*]/.test(formData.password)) {
+      setError('Password must contain at least one special character (!@#$%^&*)');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (!formData.agreeTerms) {
+      setError('You must agree to the Terms of Service');
+      return;
+    }
+
     setLoading(true);
     try {
       // Derive a simple username from full name or email
       const username = (formData.fullName || formData.email).replace(/\s+/g, '').toLowerCase();
       const payload = {
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         username,
         password: formData.password,
-        name: formData.fullName,
+        name: formData.fullName.trim(),
       };
 
       const res = await fetch(`${API_BASE}/auth/register`, {
@@ -49,7 +101,7 @@ export default function RegisterPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Registration failed');
+      if (!res.ok) throw new Error(data.error || `Registration failed with status ${res.status}`);
       const token = data.token;
       if (token) {
         localStorage.setItem('token', token);
@@ -58,7 +110,8 @@ export default function RegisterPage() {
         throw new Error('No token returned');
       }
     } catch (err) {
-      setError(err.message || 'Unexpected error');
+      console.error('Registration error:', err);
+      setError(err.message || 'Unexpected error. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -95,15 +148,15 @@ export default function RegisterPage() {
       {/* Header */}
       <nav className="w-full py-6 px-6 lg:px-12">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer">
+          <Link to="/" className="flex items-center gap-3 cursor-pointer hover:opacity-60 transition-opacity">
             <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div className="text-2xl font-light tracking-wider">OVIO</div>
-          </div>
-          <button className="text-sm tracking-wider hover:opacity-60 transition-opacity">
+          </Link>
+          <Link to="/" className="text-sm tracking-wider hover:opacity-60 transition-opacity">
             ← Back to Home
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -365,21 +418,23 @@ export default function RegisterPage() {
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all active:scale-95 font-medium flex items-center justify-center gap-2 group"
+                  disabled={loading}
+                  className="flex-1 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all active:scale-95 font-medium flex items-center justify-center gap-2 group disabled:opacity-60"
                 >
-                  Create Account
+                  {loading ? 'Creating Account...' : 'Create Account'}
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>
+              {error && <div className="mt-3 text-sm text-red-600">{error}</div>}
             </div>
           )}
 
           {/* Sign In Link */}
           <div className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <button className="text-black font-medium hover:opacity-60 transition-opacity">
+            <Link to="/login" className="text-black font-medium hover:opacity-60 transition-opacity">
               Sign in
-            </button>
+            </Link>
           </div>
 
           {/* Trust Indicators */}
