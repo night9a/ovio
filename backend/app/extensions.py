@@ -16,6 +16,6 @@ def init_extensions(app):
     """Bind initialized extensions to the Flask app."""
     db.init_app(app)
     migrate.init_app(app, db)
-    socketio.init_app(app)
-    cors.init_app(app, resources={r"/api/*": {"origins": "*"}, r"/auth/*": {"origins": "*"}})
+    socketio.init_app(app, cors_allowed_origins="*")
+    cors.init_app(app, resources={r"/*": {"origins": "*"}})
     # Additional extensions (cache, celery, llm client) should be wired here

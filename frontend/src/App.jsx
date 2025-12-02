@@ -3,7 +3,7 @@ import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { Sparkles, Code2, Zap, Users, Database, Blocks, ArrowRight, Check, Menu, X, Play, Cpu, Globe2, GitBranch, Puzzle, MessageSquare, BarChart3, Lock, Rocket, Command } from 'lucide-react';
 import LoginPage from './Login.jsx';
 import RegisterPage from './Register.jsx';
-import ProjectsPage from './Projects.jsx';
+import ProjectsPage from './ProjectsPage.jsx';
 
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

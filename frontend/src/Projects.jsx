@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Code2, Menu, X, ArrowRight, Globe2, Smartphone, ShoppingCart, Users, MessageSquare, BarChart3, Layout, Database, Zap, Clock, Star, Plus, Settings, Trash2, Eye, Copy, MoreVertical, FolderOpen, Search, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sparkles, Code2, Menu, X, ArrowRight, Globe2, Smartphone, ShoppingCart, Users, MessageSquare, BarChart3, Layout, Database, Zap, Clock, Star, Plus, Settings, Trash2, Eye, Copy, MoreVertical, FolderOpen, Search, Filter, LogOut } from 'lucide-react';
 
-export default function App() {
+export default function ProjectsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [activeTab, setActiveTab] = useState('myprojects');
   const [showCreateMenu, setShowCreateMenu] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [newProjectName, setNewProjectName] = useState('');
+  const [showCreateInput, setShowCreateInput] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const navigate = useNavigate();
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -13,52 +24,131 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const myProjects = [
-    {
-      id: 1,
-      name: "E-Commerce Dashboard",
-      description: "Admin panel for online store management",
-      type: "Web App",
-      status: "In Development",
-      lastEdited: "2 hours ago",
-      color: "from-blue-500 to-cyan-500",
-      icon: ShoppingCart,
-      progress: 65
-    },
-    {
-      id: 2,
-      name: "Fitness Tracker Mobile",
-      description: "Cross-platform workout tracking app",
-      type: "Mobile App",
-      status: "Testing",
-      lastEdited: "1 day ago",
-      color: "from-orange-500 to-red-500",
-      icon: Smartphone,
-      progress: 85
-    },
-    {
-      id: 3,
-      name: "Team Collaboration Tool",
-      description: "Real-time project management platform",
-      type: "SaaS",
-      status: "Deployed",
-      lastEdited: "3 days ago",
-      color: "from-purple-500 to-pink-500",
-      icon: Users,
-      progress: 100
-    },
-    {
-      id: 4,
-      name: "Analytics Dashboard",
-      description: "Business intelligence and reporting",
-      type: "Dashboard",
-      status: "In Development",
-      lastEdited: "5 hours ago",
-      color: "from-green-500 to-emerald-500",
-      icon: BarChart3,
-      progress: 45
+  // Fetch projects on mount
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/projects/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        }
+        throw new Error(`Failed to fetch projects: ${res.status}`);
+      }
+
+      const data = await res.json();
+      setProjects(data.projects || []);
+    } catch (err) {
+      console.error('Fetch projects error:', err);
+      setError(err.message || 'Failed to load projects');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) {
+      setError('Project name is required');
+      return;
+    }
+
+    setCreatingProject(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/projects/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newProjectName.trim()
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create project');
+      }
+
+      setProjects([...projects, data]);
+      setNewProjectName('');
+      setShowCreateInput(false);
+      setShowCreateMenu(false);
+    } catch (err) {
+      console.error('Create project error:', err);
+      setError(err.message || 'Failed to create project');
+    } finally {
+      setCreatingProject(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const res = await fetch(`${API_BASE}/projects/${projectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to delete project: ${res.status}`);
+      }
+
+      setProjects(projects.filter(p => p.id !== projectId));
+    } catch (err) {
+      console.error('Delete project error:', err);
+      setError(err.message || 'Failed to delete project');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/');
+  };
+
+  const filteredProjects = projects.filter(p =>
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const templates = [
     {
@@ -162,11 +252,21 @@ export default function App() {
               <a href="#" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Templates</a>
               <a href="#" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Docs</a>
               <div className="flex items-center gap-3">
-                <button className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all">
+                <button 
+                  onClick={() => navigate('/projects')}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all"
+                >
                   <Settings className="w-4 h-4" />
                 </button>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-lg transition-all text-sm"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  JD
+                  U
                 </div>
               </div>
             </div>
@@ -200,7 +300,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <FolderOpen className="w-4 h-4" />
-                  My Projects (4)
+                  My Projects ({projects.length})
                 </span>
               </button>
               <button 
@@ -234,7 +334,10 @@ export default function App() {
                   <div className="p-4 border-b border-gray-100">
                     <h3 className="font-bold text-sm text-gray-500 uppercase tracking-wider">Start Building</h3>
                   </div>
-                  <button className="w-full p-4 hover:bg-gray-50 transition-all flex items-start gap-4 border-b border-gray-100">
+                  <button 
+                    onClick={() => setShowCreateInput(true)}
+                    className="w-full p-4 hover:bg-gray-50 transition-all flex items-start gap-4 border-b border-gray-100"
+                  >
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Code2 className="w-6 h-6 text-white" />
                     </div>
@@ -252,6 +355,37 @@ export default function App() {
                       <div className="text-sm text-gray-600">Choose from ready-made templates</div>
                     </div>
                   </button>
+                  {showCreateInput && (
+                    <div className="p-4 border-t border-gray-100 space-y-3">
+                      <input
+                        type="text"
+                        value={newProjectName}
+                        onChange={(e) => setNewProjectName(e.target.value)}
+                        placeholder="Enter project name..."
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCreateProject}
+                          disabled={creatingProject || !newProjectName.trim()}
+                          className="flex-1 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-60"
+                        >
+                          {creatingProject ? 'Creating...' : 'Create'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowCreateInput(false);
+                            setNewProjectName('');
+                          }}
+                          className="flex-1 py-2 border border-gray-200 rounded-lg font-medium hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {error && <div className="text-sm text-red-600">{error}</div>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -260,131 +394,133 @@ export default function App() {
           {/* My Projects View */}
           {activeTab === 'myprojects' && (
             <div>
-              {/* Search & Filter */}
-              <div className="flex gap-4 mb-8">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Search projects..."
-                    className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  />
+              {/* Error Message */}
+              {error && (
+                <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                  {error}
                 </div>
-                <button className="px-6 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
-                  Filter
-                </button>
-              </div>
+              )}
 
-              {/* Projects Grid */}
-              <div className="grid md:grid-cols-2 gap-6">
-                {myProjects.map((project, idx) => (
-                  <div 
-                    key={project.id}
-                    className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer"
-                    style={{ animation: `slideUp 0.3s ease-out ${idx * 0.1}s backwards` }}
-                  >
-                    {/* Project Header */}
-                    <div className={`h-32 bg-gradient-to-br ${project.color} relative overflow-hidden`}>
-                      <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                      <div className="absolute top-4 right-4 flex gap-2">
-                        <button className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center hover:scale-110 transition-transform">
-                          <Eye className="w-5 h-5" />
-                        </button>
-                        <button className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center hover:scale-110 transition-transform">
-                          <MoreVertical className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="absolute bottom-4 left-4">
-                        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg">
-                          <project.icon className="w-6 h-6 text-gray-900" />
-                        </div>
-                      </div>
+              {/* Loading State */}
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading projects...</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Search & Filter */}
+                  <div className="flex gap-4 mb-8">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search projects..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                      />
                     </div>
+                    <button className="px-6 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2">
+                      <Filter className="w-4 h-4" />
+                      Filter
+                    </button>
+                  </div>
 
-                    {/* Project Content */}
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="text-xl font-bold mb-1">{project.name}</h3>
-                          <p className="text-sm text-gray-600">{project.description}</p>
-                        </div>
-                      </div>
-
-                      {/* Status & Type */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                          {project.type}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          project.status === 'Deployed' 
-                            ? 'bg-green-100 text-green-700'
-                            : project.status === 'Testing'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {project.status}
-                        </span>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-gray-600">Progress</span>
-                          <span className="font-bold">{project.progress}%</span>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full bg-gradient-to-r ${project.color} transition-all duration-500`}
-                            style={{ width: `${project.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Footer */}
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Clock className="w-4 h-4" />
-                          <span>{project.lastEdited}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-all">
-                            <Copy className="w-4 h-4 text-gray-600" />
-                          </button>
-                          <button className="p-2 hover:bg-gray-100 rounded-lg transition-all">
-                            <Settings className="w-4 h-4 text-gray-600" />
-                          </button>
-                          <button className="p-2 hover:bg-red-50 rounded-lg transition-all">
-                            <Trash2 className="w-4 h-4 text-red-600" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Open Button */}
-                      <button className="w-full mt-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2">
-                        Open Project
-                        <ArrowRight className="w-4 h-4" />
+                  {/* Projects Grid */}
+                  {filteredProjects.length === 0 ? (
+                    <div className="text-center py-16">
+                      <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-2xl font-bold mb-2 text-gray-600">No projects yet</h3>
+                      <p className="text-gray-500 mb-8">Create your first project to get started</p>
+                      <button
+                        onClick={() => setShowCreateMenu(true)}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Create New Project
                       </button>
                     </div>
-                  </div>
-                ))}
+                  ) : (
+                    <div className="grid md:grid-cols-2 gap-6">
+                      {filteredProjects.map((project, idx) => (
+                        <div 
+                          key={project.id}
+                          className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer"
+                          style={{ animation: `slideUp 0.3s ease-out ${idx * 0.1}s backwards` }}
+                        >
+                          {/* Project Header */}
+                          <div className="h-32 bg-gradient-to-br from-purple-500 to-pink-500 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                            <div className="absolute top-4 right-4 flex gap-2">
+                              <button className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center hover:scale-110 transition-transform">
+                                <Eye className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProject(project.id)}
+                                className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center hover:scale-110 transition-transform hover:bg-red-100"
+                              >
+                                <Trash2 className="w-5 h-5 text-red-600" />
+                              </button>
+                            </div>
+                            <div className="absolute bottom-4 left-4">
+                              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-lg">
+                                <FolderOpen className="w-6 h-6 text-purple-500" />
+                              </div>
+                            </div>
+                          </div>
 
-                {/* Create New Card */}
-                <div 
-                  className="bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-black transition-all duration-300 cursor-pointer min-h-[400px] flex items-center justify-center group"
-                  onClick={() => setShowCreateMenu(true)}
-                >
-                  <div className="text-center p-8">
-                    <div className="w-20 h-20 bg-gray-100 group-hover:bg-black rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all">
-                      <Plus className="w-10 h-10 text-gray-400 group-hover:text-white transition-all" />
+                          {/* Project Content */}
+                          <div className="p-6">
+                            <div>
+                              <h3 className="text-xl font-bold mb-1">{project.name}</h3>
+                              <p className="text-sm text-gray-600">Created on {new Date(project.created_at).toLocaleDateString()}</p>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-4">
+                              <div className="flex items-center gap-2 text-sm text-gray-500">
+                                <Clock className="w-4 h-4" />
+                                <span>ID: {project.id}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <button className="p-2 hover:bg-gray-100 rounded-lg transition-all">
+                                  <Copy className="w-4 h-4 text-gray-600" />
+                                </button>
+                                <button className="p-2 hover:bg-gray-100 rounded-lg transition-all">
+                                  <Settings className="w-4 h-4 text-gray-600" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Open Button */}
+                            <button className="w-full mt-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2">
+                              Open Project
+                              <ArrowRight className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Create New Card */}
+                      <div 
+                        className="bg-white rounded-xl border-2 border-dashed border-gray-300 hover:border-black transition-all duration-300 cursor-pointer min-h-[400px] flex items-center justify-center group"
+                        onClick={() => setShowCreateMenu(true)}
+                      >
+                        <div className="text-center p-8">
+                          <div className="w-20 h-20 bg-gray-100 group-hover:bg-black rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all">
+                            <Plus className="w-10 h-10 text-gray-400 group-hover:text-white transition-all" />
+                          </div>
+                          <h3 className="text-xl font-bold mb-2 group-hover:text-gray-600 transition-all">Create New Project</h3>
+                          <p className="text-gray-600">Start from scratch or use a template</p>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="text-xl font-bold mb-2 group-hover:text-gray-600 transition-all">Create New Project</h3>
-                    <p className="text-gray-600">Start from scratch or use a template</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+                  )}
+                </>
+              )}
 
           {/* Templates View */}
           {activeTab === 'templates' && (
