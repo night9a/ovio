@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { 
   Sparkles, Layout, Type, Image, Square, 
   Circle, Menu, X, Monitor, Smartphone, Tablet, Code2, Play, 
@@ -13,12 +15,110 @@ export default function OvioEditor() {
   const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
   const [viewport, setViewport] = useState('desktop');
   const [selectedComponent, setSelectedComponent] = useState(null);
+  const [mode, setMode] = useState('edit'); // 'edit' or 'play'
   const [canvasComponents, setCanvasComponents] = useState([]);
   const [aiPrompt, setAiPrompt] = useState('');
+  const [showDeployModal, setShowDeployModal] = useState(false);
+  const [deploymentUrl, setDeploymentUrl] = useState(null);
+  const [deploymentLoading, setDeploymentLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('components');
   const [showAICopilot, setShowAICopilot] = useState(false);
   const [copilotCommand, setCopilotCommand] = useState('');
   const [isCollaborating, setIsCollaborating] = useState(true);
+  
+  // project + realtime
+  const { projectId } = useParams();
+  const socketRef = useRef(null);
+  const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+  // load project state and setup socket in useEffect
+  useEffect(() => {
+    if (!projectId) return;
+    let mounted = true;
+    const token = localStorage.getItem('token');
+
+    // fetch initial state
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/projects/${projectId}/state`, {
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted && data && data.canvas) setCanvasComponents(data.canvas);
+        }
+      } catch (err) {
+        console.error('failed to load project state', err);
+      }
+    })();
+
+    // connect socket
+    try {
+      const socket = io(API_BASE);
+      socketRef.current = socket;
+      socket.emit('join_project', { project_id: projectId });
+      socket.on('state_update', (payload) => {
+        if (!payload) return;
+        if (String(payload.project_id) !== String(projectId)) return;
+        if (payload.state && payload.state.canvas) {
+          setCanvasComponents(payload.state.canvas);
+        }
+      });
+    } catch (err) {
+      console.error('socket init failed', err);
+    }
+
+    return () => {
+      mounted = false;
+      try {
+        if (socketRef.current) {
+          socketRef.current.emit('leave_project', { project_id: projectId });
+          socketRef.current.disconnect();
+        }
+      } catch (e) {}
+    };
+  }, [projectId]);
+
+  // autosave: debounce writes to server and emit socket update
+  const saveTimeoutRef = useRef(null);
+  const saveState = async (state) => {
+    const token = localStorage.getItem('token');
+    try {
+      await fetch(`${API_BASE}/projects/${projectId}/state`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(state)
+      });
+    } catch (err) {
+      console.error('failed to save state', err);
+    }
+  };
+
+  // immediate save triggered by Save button
+  const handleSaveNow = async () => {
+    if (!projectId) return;
+    // cancel any pending autosave
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    const state = { id: projectId, canvas: canvasComponents };
+    await saveState(state);
+    if (socketRef.current) socketRef.current.emit('state_update', { project_id: projectId, state });
+  };
+
+  useEffect(() => {
+    if (!projectId) return;
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      const state = { id: projectId, canvas: canvasComponents };
+      // save to server
+      saveState(state);
+      // emit realtime update
+      if (socketRef.current) socketRef.current.emit('state_update', { project_id: projectId, state });
+    }, 1200);
+    return () => saveTimeoutRef.current && clearTimeout(saveTimeoutRef.current);
+  }, [canvasComponents, projectId]);
 
   const componentLibrary = [
     { id: 'container', name: 'Container', icon: Square, category: 'Layout' },
@@ -77,6 +177,35 @@ export default function OvioEditor() {
     setCanvasComponents([...canvasComponents, newComponent]);
   };
 
+  // drag-to-move for placed components (edit mode)
+  const draggingRef = useRef({ id: null, offsetX: 0, offsetY: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!draggingRef.current.id) return;
+      setCanvasComponents((prev) => prev.map((c) => {
+        if (c.uniqueId !== draggingRef.current.id) return c;
+        return {
+          ...c,
+          x: e.clientX - draggingRef.current.offsetX,
+          y: e.clientY - draggingRef.current.offsetY,
+        };
+      }));
+    };
+    const handleMouseUp = () => {
+      if (draggingRef.current.id) {
+        draggingRef.current.id = null;
+        // saving will be handled by autosave effect
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   const handleAIGenerate = () => {
     if (aiPrompt.trim()) {
       alert(`AI is generating: ${aiPrompt}`);
@@ -96,20 +225,86 @@ export default function OvioEditor() {
     const baseClasses = "absolute p-4 border-2 border-dashed border-gray-300 bg-white hover:border-blue-500 cursor-move transition-all";
     const style = { left: comp.x, top: comp.y };
 
-    switch(comp.id.split('-')[0]) {
+    const type = comp.id.split('-')[0];
+    const props = comp.props || {};
+
+    const commonProps = {
+      key: comp.uniqueId,
+      className: baseClasses,
+      style,
+      onMouseDown: (e) => {
+        if (mode !== 'edit') return;
+        // start dragging
+        draggingRef.current.id = comp.uniqueId;
+        const rect = e.currentTarget.getBoundingClientRect();
+        draggingRef.current.offsetX = e.clientX - rect.left;
+        draggingRef.current.offsetY = e.clientY - rect.top;
+        e.stopPropagation();
+      },
+      onClick: (e) => {
+        if (mode === 'edit') {
+          setSelectedComponent(comp.uniqueId);
+          e.stopPropagation();
+        }
+      }
+    };
+
+    switch(type) {
       case 'text':
-        return <div key={comp.uniqueId} className={baseClasses} style={style}>Sample Text</div>;
+        return <div {...commonProps}>{props.text || 'Sample Text'}</div>;
       case 'heading':
-        return <div key={comp.uniqueId} className={`${baseClasses} font-bold text-2xl`} style={style}>Heading</div>;
+        return <div {...commonProps} className={`${baseClasses} font-bold text-2xl`}>{props.text || 'Heading'}</div>;
       case 'button':
-        return <button key={comp.uniqueId} className={`${baseClasses} bg-black text-white px-6 py-2`} style={style}>Button</button>;
+        // in play mode, allow click actions; in edit mode clicks select and start drag
+        if (mode === 'play') {
+          return (
+            <button key={comp.uniqueId} className={`${baseClasses} bg-black text-white px-6 py-2`} style={style} onClick={() => alert(props.label || 'Button clicked')}>{props.label || 'Button'}</button>
+          );
+        }
+        return <button {...commonProps} className={`${baseClasses} bg-black text-white px-6 py-2`}>{props.label || 'Button'}</button>;
       case 'image':
-        return <div key={comp.uniqueId} className={`${baseClasses} w-48 h-32 bg-gray-200`} style={style}>Image</div>;
+        return <div {...commonProps} className={`${baseClasses} w-48 h-32 bg-gray-200`}>Image</div>;
       case 'card':
-        return <div key={comp.uniqueId} className={`${baseClasses} w-64 h-48 shadow-lg`} style={style}>Card Component</div>;
+        return <div {...commonProps} className={`${baseClasses} w-64 h-48 shadow-lg`}>Card Component</div>;
       default:
-        return <div key={comp.uniqueId} className={baseClasses} style={style}>{comp.name}</div>;
+        return <div {...commonProps}>{comp.name}</div>;
     }
+  };
+
+  // update selected component properties
+  const updateSelectedComponent = (updates) => {
+    setCanvasComponents((prev) => prev.map((c) => c.uniqueId === selectedComponent ? { ...c, props: { ...(c.props||{}), ...updates } } : c));
+  };
+
+  // Deploy to web
+  const handleDeploy = async () => {
+    if (!projectId) return;
+    setDeploymentLoading(true);
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE}/projects/${projectId}/deploy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDeploymentUrl(data.full_url || data.url);
+        setShowDeployModal(true);
+      } else {
+        alert('Deployment failed');
+      }
+    } catch (err) {
+      console.error('deployment error', err);
+      alert('Deployment error');
+    } finally {
+      setDeploymentLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Copied to clipboard!');
+    }).catch(err => console.error('copy failed', err));
   };
 
   return (
@@ -176,6 +371,15 @@ export default function OvioEditor() {
           <button className="p-2 hover:bg-gray-100 rounded-lg transition-all" title="Redo">
             <Redo className="w-4 h-4" />
           </button>
+          {/* Save Now */}
+          <button onClick={handleSaveNow} className="p-2 hover:bg-gray-100 rounded-lg transition-all" title="Save">
+            <Save className="w-4 h-4" />
+          </button>
+          {/* Mode Toggle */}
+          <div className="ml-2 flex items-center bg-gray-100 rounded-lg p-1">
+            <button onClick={() => setMode('edit')} className={`px-3 py-1 rounded ${mode === 'edit' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}>Edit</button>
+            <button onClick={() => setMode('play')} className={`px-3 py-1 rounded ${mode === 'play' ? 'bg-white shadow-sm' : 'hover:bg-gray-200'}`}>Play</button>
+          </div>
           <div className="w-px h-6 bg-gray-300"></div>
           
           {/* AI Copilot Button */}
@@ -261,6 +465,62 @@ export default function OvioEditor() {
               >
                 <Sparkles className="w-4 h-4" />
                 Execute
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deployment Modal */}
+      {showDeployModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-xl flex items-center justify-center">
+                  <Rocket className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Deployment Successful</h2>
+                  <p className="text-sm text-gray-600">Your app is now live on the web!</p>
+                </div>
+              </div>
+              <button onClick={() => setShowDeployModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <div className="text-sm font-medium text-gray-700">App URL</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={deploymentUrl || ''}
+                  readOnly
+                  className="flex-1 p-3 border border-gray-300 rounded-lg bg-gray-50"
+                />
+                <button
+                  onClick={() => copyToClipboard(deploymentUrl)}
+                  className="px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all"
+                >
+                  Copy
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">Share this link with others to let them view your app</p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.open(deploymentUrl, '_blank')}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+              >
+                Open Live App
+              </button>
+              <button
+                onClick={() => setShowDeployModal(false)}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-all"
+              >
+                Close
               </button>
             </div>
           </div>
@@ -475,6 +735,7 @@ export default function OvioEditor() {
               style={{ width: viewportSizes[viewport].width }}
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
+              onClick={() => setSelectedComponent(null)}
             >
               {canvasComponents.length === 0 ? (
                 <div className="flex items-center justify-center h-96 text-gray-400">
@@ -496,6 +757,50 @@ export default function OvioEditor() {
           rightSidebarOpen ? 'w-80' : 'w-0'
         } overflow-hidden`}>
           <div className="p-6 space-y-6 h-full overflow-auto">
+            {/* Selected Component Properties */}
+            {selectedComponent && (() => {
+              const sel = canvasComponents.find(c => c.uniqueId === selectedComponent);
+              if (!sel) return null;
+              const type = sel.id.split('-')[0];
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-gray-700">
+                    <Settings className="w-4 h-4" />
+                    SELECTED COMPONENT
+                  </div>
+                  <div className="text-sm font-medium">{sel.name} <span className="text-xs text-gray-400">({type})</span></div>
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-500">Position</div>
+                    <div className="flex gap-2 text-sm">
+                      <input type="number" value={Math.round(sel.x)} readOnly className="w-1/2 p-2 border rounded" />
+                      <input type="number" value={Math.round(sel.y)} readOnly className="w-1/2 p-2 border rounded" />
+                    </div>
+                  </div>
+                  {type === 'button' && (
+                    <div>
+                      <div className="text-xs text-gray-500">Label</div>
+                      <input className="w-full p-2 border rounded" value={sel.props?.label || ''} onChange={(e) => updateSelectedComponent({ label: e.target.value })} />
+                    </div>
+                  )}
+                  {type === 'text' && (
+                    <div>
+                      <div className="text-xs text-gray-500">Text</div>
+                      <input className="w-full p-2 border rounded" value={sel.props?.text || ''} onChange={(e) => updateSelectedComponent({ text: e.target.value })} />
+                    </div>
+                  )}
+                  {type === 'heading' && (
+                    <div>
+                      <div className="text-xs text-gray-500">Heading</div>
+                      <input className="w-full p-2 border rounded" value={sel.props?.text || ''} onChange={(e) => updateSelectedComponent({ text: e.target.value })} />
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <button className="flex-1 p-2 bg-red-500 text-white rounded" onClick={() => { setCanvasComponents(prev => prev.filter(c => c.uniqueId !== selectedComponent)); setSelectedComponent(null); }}>Delete</button>
+                    <button className="flex-1 p-2 bg-gray-100 rounded" onClick={() => setSelectedComponent(null)}>Close</button>
+                  </div>
+                </div>
+              );
+            })()}
             {/* Export Section */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-gray-700">
@@ -529,13 +834,14 @@ export default function OvioEditor() {
               </div>
               
               <div className="space-y-3">
-                <button className="w-full p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 text-sm">
+                <button onClick={handleDeploy} disabled={deploymentLoading} className="w-full p-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm">
                   <Rocket className="w-4 h-4" />
-                  Deploy to Web
+                  {deploymentLoading ? 'Deploying...' : 'Deploy to Web'}
                 </button>
-                <button className="w-full p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm">
+                <button disabled className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-400 flex items-center justify-center gap-2 text-sm cursor-not-allowed">
                   <Smartphone className="w-4 h-4" />
                   Build Mobile App
+                  <span className="ml-auto text-xs">Under Dev</span>
                 </button>
               </div>
             </div>

@@ -381,7 +381,7 @@ export default function ProjectsPage() {
                         </div>
 
                         {/* Open Button */}
-                        <button className="w-full mt-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <button onClick={() => navigate(`/editor/${project.id}`)} className="w-full mt-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-all active:scale-95 flex items-center justify-center gap-2">
                           Open Project
                           <ArrowRight className="w-4 h-4" />
                         </button>

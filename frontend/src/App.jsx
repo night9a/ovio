@@ -4,6 +4,7 @@ import { Sparkles, Code2, Zap, Users, Database, Blocks, ArrowRight, Check, Menu,
 import LoginPage from './Login.jsx';
 import RegisterPage from './Register.jsx';
 import ProjectsPage from './ProjectsPage.jsx';
+import EditorPage from './Editor.jsx';
 
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -22,6 +23,7 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/projects" element={<ProjectsPage />} />
+  <Route path="/editor/:projectId" element={<EditorPage />} />
       <Route path="/" element={<LandingPage mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} scrollY={scrollY} activeTab={activeTab} setActiveTab={setActiveTab} navigate={navigate} />} />
     </Routes>
   );

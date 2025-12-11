@@ -1,1 +1,0 @@
-"""Keep migrations folder in VCS until alembic is configured."""

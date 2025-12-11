@@ -5,6 +5,7 @@ from .relation import Relation
 from .asset import Asset
 from .history import History
 from .template import Template
+from .host import Host
 from .dynamic_models import create_dynamic_models
 
 __all__ = [
