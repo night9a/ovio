@@ -1,8 +1,28 @@
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, X, Menu, User, Settings, CreditCard, ShieldCheck, Globe, Bell } from 'lucide-react';
+import { useState } from 'react';
+import { Sparkles, X, Menu, User, Settings, CreditCard, ShieldCheck, Globe, Bell, Copy, QrCode } from 'lucide-react';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const [showCrypto, setShowCrypto] = useState(false);
+  const [selectedCoin, setSelectedCoin] = useState('ETH');
+  const [amount, setAmount] = useState('29');
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+
+  const coinAddresses = {
+    ETH: '0xAbC123...YourEthAddress',
+    USDC: '0xDeF456...YourUsdcAddress',
+    BTC: 'bc1qexamplebtcaddressxxxxxxxxxxxxxxxx'
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Copied to clipboard');
+    } catch (err) {
+      console.error('copy failed', err);
+    }
+  };
 
   return (
     <div className="bg-gray-50 text-gray-900 min-h-screen">
@@ -142,9 +162,69 @@ export default function SettingsPage() {
                         <div className="text-sm text-gray-500">You are currently on the Free plan</div>
                       </div>
                       <div>
-                        <button className="px-4 py-2 bg-black text-white rounded-lg">Upgrade</button>
+                        <button onClick={() => setShowCrypto(!showCrypto)} className="px-4 py-2 bg-black text-white rounded-lg">Upgrade</button>
                       </div>
                     </div>
+
+                    {/* Crypto payment UI */}
+                    {showCrypto && (
+                      <div className="mt-4 bg-gray-50 p-4 rounded">
+                        <div className="flex items-center gap-3 mb-3">
+                          <QrCode className="w-5 h-5 text-gray-600" />
+                          <div className="font-semibold">Pay with Crypto</div>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-3 items-center mb-3">
+                          <div className="md:col-span-1">
+                            <label className="text-xs text-gray-500">Currency</label>
+                            <select value={selectedCoin} onChange={(e) => setSelectedCoin(e.target.value)} className="w-full mt-1 px-3 py-2 border border-gray-200 rounded">
+                              <option value="ETH">Ethereum (ETH)</option>
+                              <option value="USDC">USDC (ERC-20)</option>
+                              <option value="BTC">Bitcoin (BTC)</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-xs text-gray-500">Amount</label>
+                            <div className="mt-1">
+                              <input value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full px-3 py-2 border border-gray-200 rounded" />
+                            </div>
+                          </div>
+
+                          <div className="flex items-end">
+                            <button onClick={() => setShowPaymentDetails(!showPaymentDetails)} className="w-full px-3 py-2 bg-black text-white rounded">Generate Payment</button>
+                          </div>
+                        </div>
+
+                        {showPaymentDetails && (
+                          <div className="mt-3 border border-dashed border-gray-200 rounded p-4 bg-white">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="text-sm text-gray-500">Send</div>
+                                <div className="font-mono font-bold text-lg">{amount} {selectedCoin}</div>
+                                <div className="text-sm text-gray-500">To</div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <div className="font-mono text-sm">{coinAddresses[selectedCoin]}</div>
+                                  <button onClick={() => copyToClipboard(coinAddresses[selectedCoin])} className="p-1 rounded hover:bg-gray-100">
+                                    <Copy className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="text-right">
+                                <div className="w-28 h-28 bg-gray-100 rounded flex items-center justify-center">QR</div>
+                                <div className="text-xs text-gray-400 mt-2">Scan to pay (wallet app)</div>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 flex gap-2">
+                              <button onClick={() => copyToClipboard(`${selectedCoin}:${coinAddresses[selectedCoin]}?amount=${amount}`)} className="px-4 py-2 border border-gray-200 rounded">Copy Payment URI</button>
+                              <button onClick={() => alert('Marked as paid — you should verify the transaction server-side')} className="px-4 py-2 bg-green-600 text-white rounded">I have paid</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
