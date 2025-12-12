@@ -172,7 +172,7 @@ export default function ProjectsPage() {
               <a href="#" className="text-sm tracking-wider hover:opacity-60 transition-opacity">Docs</a>
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => navigate('/projects')}
+                  onClick={() => navigate('/settings')}
                   className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-all"
                 >
                   <Settings className="w-4 h-4" />

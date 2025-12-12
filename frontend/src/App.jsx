@@ -5,6 +5,9 @@ import LoginPage from './Login.jsx';
 import RegisterPage from './Register.jsx';
 import ProjectsPage from './ProjectsPage.jsx';
 import EditorPage from './Editor.jsx';
+import SettingsPage from './Settings.jsx';
+import DocsPage from './Docs.jsx';
+import SupportPage from './Support.jsx';
 
 export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -24,6 +27,9 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/projects" element={<ProjectsPage />} />
   <Route path="/editor/:projectId" element={<EditorPage />} />
+    <Route path="/docs" element={<DocsPage />} />
+    <Route path="/support" element={<SupportPage />} />
+    <Route path="/settings" element={<SettingsPage />} />
       <Route path="/" element={<LandingPage mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} scrollY={scrollY} activeTab={activeTab} setActiveTab={setActiveTab} navigate={navigate} />} />
     </Routes>
   );
