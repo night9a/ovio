@@ -11,7 +11,7 @@ bp = Blueprint("deploy", __name__, url_prefix="/app")
 def view_deployed_app(deployment_slug):
     """Serve a publicly deployed project app."""
     host = Host.query.filter_by(url=f"/app/{deployment_slug}", status="active").first()
-    
+    #a
     if not host:
         abort(404)
     
