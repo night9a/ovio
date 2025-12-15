@@ -25,19 +25,54 @@ export default function OvioEditor() {
   const [showAICopilot, setShowAICopilot] = useState(false);
   const [copilotCommand, setCopilotCommand] = useState('');
   const [isCollaborating, setIsCollaborating] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [collaborators, setCollaborators] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [initialStateLoaded, setInitialStateLoaded] = useState(false);
   
   // project + realtime
   const { projectId } = useParams();
   const socketRef = useRef(null);
+  const initialStateLoadedRef = useRef(false);
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+  // helper: stable color per username
+  const getColorForUser = (username) => {
+    const colors = ['bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-pink-500', 'bg-yellow-500'];
+    if (!username) return colors[0];
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = (hash * 31 + username.charCodeAt(i)) >>> 0;
+    }
+    return colors[hash % colors.length];
+  };
+
+  // load current authenticated user
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/me`, {
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data);
+        }
+      } catch (err) {
+        console.error('failed to load current user', err);
+      }
+    })();
+  }, [API_BASE]);
 
   // load project state and setup socket in useEffect
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || !currentUser) return;
     let mounted = true;
     const token = localStorage.getItem('token');
 
-    // fetch initial state
+    // fetch initial state BEFORE connecting socket to prevent empty state broadcast
     (async () => {
       try {
         const res = await fetch(`${API_BASE}/projects/${projectId}/state`, {
@@ -45,25 +80,96 @@ export default function OvioEditor() {
         });
         if (res.ok) {
           const data = await res.json();
-          if (mounted && data && data.canvas) setCanvasComponents(data.canvas);
+          if (mounted) {
+            // Set canvas components (even if empty array, it's the saved state)
+            setCanvasComponents(data.canvas || []);
+            // Mark initial state as loaded to allow autosave
+            setInitialStateLoaded(true);
+            initialStateLoadedRef.current = true;
+          }
+        } else {
+          // If no state exists yet, still mark as loaded to allow autosave
+          if (mounted) {
+            setInitialStateLoaded(true);
+            initialStateLoadedRef.current = true;
+          }
         }
       } catch (err) {
         console.error('failed to load project state', err);
+        // On error, still mark as loaded to allow autosave
+        if (mounted) {
+          setInitialStateLoaded(true);
+          initialStateLoadedRef.current = true;
+        }
       }
     })();
 
     // connect socket
     try {
-      const socket = io(API_BASE);
+      const socket = io(API_BASE, {
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5
+      });
       socketRef.current = socket;
-      socket.emit('join_project', { project_id: projectId });
+      
+      // Wait for connection before joining project
+      socket.on('connect', () => {
+        console.log('Socket connected, joining project', projectId);
+        socket.emit('join_project', {
+          project_id: projectId,
+          user_id: currentUser.id,
+          username: currentUser.username,
+          name: currentUser.name
+        });
+      });
+      
+      socket.on('connect_error', (err) => {
+        console.error('Socket connection error', err);
+      });
+      
       socket.on('state_update', (payload) => {
         if (!payload) return;
         if (String(payload.project_id) !== String(projectId)) return;
-        if (payload.state && payload.state.canvas) {
-          setCanvasComponents(payload.state.canvas);
+        if (payload.state && payload.state.canvas !== undefined) {
+          console.log('Received state_update via socket', payload);
+          // Only update canvas if initial state has been loaded
+          // This prevents clearing canvas when page reloads and receives empty state
+          if (initialStateLoadedRef.current) {
+            setCanvasComponents(payload.state.canvas || []);
+          } else {
+            console.log('Ignoring state_update - initial state not loaded yet');
+          }
         }
       });
+      socket.on('presence_update', (payload) => {
+        if (!payload || String(payload.project_id) !== String(projectId)) return;
+        const users = payload.users || [];
+        console.log('Received presence_update via socket', users);
+        setCollaborators(users);
+      });
+      socket.on('collaborator_added', (payload) => {
+        if (!payload || String(payload.project_id) !== String(projectId)) return;
+        const newUser = payload.user;
+        console.log('Received collaborator_added via socket', newUser);
+        if (newUser) {
+          setCollaborators((prev) => {
+            if (prev.find((u) => u.id === newUser.id)) return prev;
+            return [...prev, newUser];
+          });
+        }
+      });
+      
+      // If already connected, join immediately
+      if (socket.connected) {
+        socket.emit('join_project', {
+          project_id: projectId,
+          user_id: currentUser.id,
+          username: currentUser.username,
+          name: currentUser.name
+        });
+      }
     } catch (err) {
       console.error('socket init failed', err);
     }
@@ -77,7 +183,7 @@ export default function OvioEditor() {
         }
       } catch (e) {}
     };
-  }, [projectId]);
+  }, [projectId, currentUser, API_BASE]);
 
   // autosave: debounce writes to server and emit socket update
   const saveTimeoutRef = useRef(null);
@@ -107,18 +213,48 @@ export default function OvioEditor() {
     if (socketRef.current) socketRef.current.emit('state_update', { project_id: projectId, state });
   };
 
+  const handleInviteCollaborator = async () => {
+    if (!inviteEmail.trim() || !projectId) return;
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(`${API_BASE}/projects/${projectId}/collaborators`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ email: inviteEmail.trim() })
+      });
+      if (!res.ok) {
+        alert('Could not add collaborator (check email and permissions)');
+        return;
+      }
+      const data = await res.json();
+      setCollaborators((prev) => {
+        if (prev.find((u) => u.id === data.id)) return prev;
+        return [...prev, data];
+      });
+      setInviteEmail('');
+    } catch (err) {
+      console.error('failed to invite collaborator', err);
+      alert('Failed to invite collaborator');
+    }
+  };
+
   useEffect(() => {
-    if (!projectId) return;
+    // Don't autosave until initial state is loaded (prevents clearing on reload)
+    if (!projectId || !initialStateLoaded) return;
+    
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(() => {
       const state = { id: projectId, canvas: canvasComponents };
-      // save to server
+      // save to server (this also broadcasts via Socket.IO)
       saveState(state);
-      // emit realtime update
-      if (socketRef.current) socketRef.current.emit('state_update', { project_id: projectId, state });
+      // also emit realtime update directly via socket for immediate sync
+      if (socketRef.current && socketRef.current.connected) {
+        console.log('Emitting state_update via socket', { project_id: projectId, state });
+        socketRef.current.emit('state_update', { project_id: projectId, state });
+      }
     }, 1200);
     return () => saveTimeoutRef.current && clearTimeout(saveTimeoutRef.current);
-  }, [canvasComponents, projectId]);
+  }, [canvasComponents, projectId, initialStateLoaded]);
 
   const componentLibrary = [
     { id: 'container', name: 'Container', icon: Square, category: 'Layout' },
@@ -143,12 +279,6 @@ export default function OvioEditor() {
     { id: 'google-auth', name: 'Google Login', icon: '🔐', installed: true },
     { id: 'sendgrid', name: 'SendGrid Email', icon: '📧', installed: false },
     { id: 'twilio', name: 'Twilio SMS', icon: '📱', installed: false },
-  ];
-
-  const collaborators = [
-    { name: 'John', color: 'bg-blue-500', active: true },
-    { name: 'Sarah', color: 'bg-purple-500', active: true },
-    { name: 'Mike', color: 'bg-green-500', active: false },
   ];
 
   const viewportSizes = {
@@ -349,18 +479,39 @@ export default function OvioEditor() {
                 {collaborators.map((collab, idx) => (
                   <div
                     key={idx}
-                    className={`w-8 h-8 ${collab.color} rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold ${
-                      collab.active ? 'ring-2 ring-green-400' : ''
-                    }`}
-                    title={collab.name}
+                    className={`w-8 h-8 ${getColorForUser(collab.username || collab.name)} rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold ring-2 ring-green-400`}
+                    title={collab.name || collab.username}
                   >
-                    {collab.name[0]}
+                    {(collab.name || collab.username || '?')[0]}
                   </div>
                 ))}
+                {!collaborators.length && currentUser && (
+                  <div
+                    className={`w-8 h-8 ${getColorForUser(currentUser.username)} rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold ring-2 ring-green-400`}
+                    title={currentUser.name || currentUser.username}
+                  >
+                    {(currentUser.name || currentUser.username || '?')[0]}
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1 text-xs text-green-600">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 Live
+              </div>
+              <div className="flex items-center gap-2 ml-3">
+                <input
+                  type="text"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="Add by email"
+                  className="px-2 py-1 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-black"
+                />
+                <button
+                  onClick={handleInviteCollaborator}
+                  className="px-2 py-1 bg-black text-white rounded-lg text-xs hover:bg-gray-800 transition-all"
+                >
+                  Add
+                </button>
               </div>
             </div>
           )}

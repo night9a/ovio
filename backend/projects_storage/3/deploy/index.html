@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>i - OVIO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
+        .component-item { display: inline-block; position: absolute; padding: 1rem; border: 1px dashed #d1d5db; background: white; border-radius: 0.5rem; transition: all 0.2s; }
+        .component-item:hover { border-color: #3b82f6; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button.component-button { background-color: black; color: white; padding: 0.5rem 1.5rem; border-radius: 0.5rem; cursor: pointer; border: none; font-size: 1rem; transition: background-color 0.2s; }
+        button.component-button:hover { background-color: #1f2937; }
+        .canvas-container { position: relative; width: 100%; min-height: 500px; background: white; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+        <nav class="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-4 shadow-sm"><div class="flex items-center gap-3"><div class="w-8 h-8 bg-black rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">O</span></div><span class="text-xl font-light tracking-wider">OVIO</span></div><span class="text-gray-600 text-sm">/ i</span><div class="ml-auto text-xs text-gray-500">Deployed with <a href="/" class="text-blue-600 hover:underline">OVIO</a></div></nav>
+        <main class="flex-1 flex items-center justify-center p-8 overflow-auto"><div class="canvas-container" style="max-width: 1200px;"><div class="component-item" style="left: 214px; top: 227px;"><div class="text-gray-500">Grid</div></div>
+<div class="component-item" style="left: 451px; top: 177px;"><div class="text-gray-500">Container</div></div>
+<div class="component-item" style="left: 148px; top: 153px;"><div class="text-gray-500">Columns</div></div>
+<div class="component-item" style="left: 108px; top: 332px;"><h1 class="text-2xl font-bold">Heading</h1></div>
+<div class="component-item" style="left: 619px; top: 390px;"><div class="w-48 h-32 bg-gray-200 flex items-center justify-center text-gray-500">Image</div></div>
+</div></main>
+    </div>
+    <script>function handleComponentAction(componentId){console.log('Component ' + componentId + ' clicked');alert('Component action triggered');}</script>
+</body>
+</html>
