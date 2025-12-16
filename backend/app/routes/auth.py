@@ -5,6 +5,8 @@ Notes:
  - In development the password-reset token is returned in the response for convenience.
    In production you should email a reset link instead.
 """
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from flask import Blueprint, jsonify, request, current_app
 from ..extensions import db
 from ..models import User
@@ -72,6 +74,60 @@ def login():
 
     token = user.generate_auth_token()
     return jsonify({"token": token, "expires_in": current_app.config.get("AUTH_TOKEN_EXPIRES", 3600)})
+
+@bp.route("/google", methods=["POST"])
+def google_login():
+    data = request.get_json() or {}
+    token = data.get("token")
+
+    if not token:
+        return jsonify({"error": "missing google token"}), 400
+
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            token,
+            google_requests.Request(),
+            current_app.config["GOOGLE_CLIENT_ID"],
+        )
+
+        google_id = idinfo["sub"]
+        email = idinfo["email"].lower()
+        name = idinfo.get("name")
+
+    except Exception:
+        return jsonify({"error": "invalid google token"}), 401
+
+    # 1. Try google_id
+    user = User.query.filter_by(google_id=google_id).first()
+
+    # 2. If not found, try email (account linking)
+    if not user:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.google_id = google_id  # link account
+        else:
+            # 3. Create new user
+            user = User(
+                email=email,
+                username=email.split("@")[0],
+                name=name,
+                google_id=google_id,
+            )
+            db.session.add(user)
+
+        db.session.commit()
+
+    token = user.generate_auth_token()
+
+    return jsonify({
+        "token": token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "name": user.name,
+        }
+    })
 
 
 @bp.route("/me")

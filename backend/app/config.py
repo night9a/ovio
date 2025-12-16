@@ -13,7 +13,7 @@ class Config:
     # Authentication / token expirations (seconds)
     AUTH_TOKEN_EXPIRES = int(os.environ.get("AUTH_TOKEN_EXPIRES", 3600))
     RESET_TOKEN_EXPIRES = int(os.environ.get("RESET_TOKEN_EXPIRES", 3600 * 24))
-    GOOGLE_CLIENT_ID = ""
+    GOOGLE_CLIENT_ID = "814124596804-o07r8uokfces627sar5l0gk1ihacp1u5.apps.googleusercontent.com"
 
 class DevelopmentConfig(Config):
     DEBUG = True
