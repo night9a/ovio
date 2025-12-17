@@ -89,7 +89,7 @@ def google_login():
             google_requests.Request(),
             current_app.config["GOOGLE_CLIENT_ID"],
         )
-
+        print(current_app.config["GOOGLE_CLIENT_ID"])
         google_id = idinfo["sub"]
         email = idinfo["email"].lower()
         name = idinfo.get("name")
