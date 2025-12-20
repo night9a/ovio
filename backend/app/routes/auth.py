@@ -10,53 +10,35 @@ from google.auth.transport import requests as google_requests
 from flask import Blueprint, jsonify, request, current_app
 from ..extensions import db
 from ..models import User
-from functools import wraps
+from ..headers.auth_header import require_auth
+from ..services.auth_service import register_user, RegisterError
+#from functools import wraps
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
-
-
-def require_auth(fn):
-    @wraps(fn)
-    def wrapper(*args, **kwargs):
-        auth = request.headers.get("Authorization", "")
-        if not auth.startswith("Bearer "):
-            return jsonify({"error": "missing token"}), 401
-        token = auth.split(" ", 1)[1]
-        user = User.verify_auth_token(token)
-        if not user:
-            return jsonify({"error": "invalid or expired token"}), 401
-        # attach current user to request for downstream handlers
-        request.current_user = user
-        return fn(*args, **kwargs)
-
-    return wrapper
 
 
 @bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json() or {}
-    email = (data.get("email") or "").strip().lower()
-    username = (data.get("username") or "").strip()
-    password = data.get("password")
-    name = data.get("name")
 
-    if not email or not username or not password:
-        return jsonify({"error": "email, username and password are required"}), 400
-
-    if User.query.filter_by(email=email).first() or User.query.filter_by(username=username).first():
-        # avoid leaking which field collided
-        return jsonify({"error": "user with provided email/username already exists"}), 400
-
-    user = User(email=email, username=username, name=name)
-    user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
+    try:
+        user = register_user(
+            email=data.get("email", ""),
+            username=data.get("username", ""),
+            password=data.get("password"),
+            name=data.get("name"),
+        )
+    except RegisterError as e:
+        return jsonify({"error": str(e)}), 400
 
     token = user.generate_auth_token()
-    return (
-        jsonify({"id": user.id, "email": user.email, "username": user.username, "token": token}),
-        201,
-    )
+
+    return jsonify({
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "token": token,
+    }), 201
 
 
 @bp.route("/login", methods=["POST"])

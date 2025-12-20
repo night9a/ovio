@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from ..extensions import db, socketio
 from ..models import Project, User, Host
-from .auth import require_auth
+from ..headers.auth_header import require_auth
 from datetime import datetime
 import os
 import json
