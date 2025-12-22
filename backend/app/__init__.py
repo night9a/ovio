@@ -23,10 +23,11 @@ def create_app(config_object=None):
     init_extensions(app)
 
     # register blueprints lazily to avoid circular imports
-    from .routes import auth, projects, deploy  # noqa: E402
+    from .routes import auth, projects, deploy,plugin  # noqa: E402
 
     app.register_blueprint(auth.bp)
     app.register_blueprint(projects.bp)
     app.register_blueprint(deploy.bp)
+    app.register_blueprint(plugin.bp)
 
     return app

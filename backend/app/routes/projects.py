@@ -5,6 +5,7 @@ from ..models import Project, User, Host
 from ..headers.auth_header import require_auth
 from datetime import datetime
 import os
+from ..utils import msg_serializer
 import json
 from flask_socketio import join_room, leave_room
 from flask import session, send_file
@@ -58,7 +59,7 @@ def list_projects():
         ]
     }), 200
 
-
+#TODO MAKE THE NEW PROJECT created with new arch 
 @bp.route("/", methods=["POST"])
 @require_auth
 def create_project():
@@ -79,7 +80,7 @@ def create_project():
     project = Project(name=name, owner_id=user.id)
     db.session.add(project)
     db.session.commit()
-
+    
     # Create on-disk project storage folder and initial state
     try:
         storage_root = os.path.abspath(os.path.join(current_app.root_path, '..', 'projects_storage'))
@@ -382,6 +383,7 @@ def delete_project(project_id):
     return jsonify({"success": True, "message": "project deleted successfully"}), 200
 
 
+#TODO to move into deploy route
 @bp.route("/<int:project_id>/deploy", methods=["POST"])
 @require_auth
 def deploy_project(project_id):

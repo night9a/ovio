@@ -7,6 +7,7 @@ from .history import History
 from .template import Template
 from .host import Host
 from .dynamic_models import create_dynamic_models
+from .plugin import Plugin
 
 __all__ = [
     "User",
@@ -15,5 +16,6 @@ __all__ = [
     "Asset",
     "History",
     "Template",
+    "Plugin",
     "create_dynamic_models",
 ]
