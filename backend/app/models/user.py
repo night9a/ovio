@@ -16,6 +16,9 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     name = db.Column(db.String(255))
     avatar = db.Column(db.String(512),nullable=True,default=None)
+    #company_name = 
+    #role = 
+    #email_update = 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):

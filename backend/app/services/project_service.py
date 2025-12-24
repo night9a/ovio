@@ -23,6 +23,7 @@ class ProjectService:
     @staticmethod
     def list_projects(user=None):
         return Project.query.filter_by(owner_id=user.id).all()
+        
     @staticmethod
     def create_project(user, data):
         name = (data.get("name") or "").strip()
@@ -48,6 +49,7 @@ class ProjectService:
         db.session.commit()
     
         try:
+            # base storage
             storage_root = os.path.abspath(
                 os.path.join(current_app.root_path, "..", "projects_storage")
             )
@@ -57,22 +59,25 @@ class ProjectService:
             os.makedirs(proj_dir, exist_ok=True)
     
             # directories
-            backend_dir = os.path.join(proj_dir, "backend")
-            frontend_dir = os.path.join(proj_dir, "frontend")
+            relation_dir = os.path.join(proj_dir, "relation")
+            ui_dir = os.path.join(proj_dir, "ui")
             module_dir = os.path.join(proj_dir, "module")
     
-            os.makedirs(backend_dir, exist_ok=True)
-            os.makedirs(frontend_dir, exist_ok=True)
+            os.makedirs(relation_dir, exist_ok=True)
+            os.makedirs(ui_dir, exist_ok=True)
             os.makedirs(module_dir, exist_ok=True)
     
-            # files
+            # paths for msgpack files
             meta_path = os.path.join(proj_dir, "meta_data.msgpack")
             plugin_path = os.path.join(proj_dir, "plugin.msgpack")
-            backend_browser_path = os.path.join(backend_dir, "browser.msgpack")
-            frontend_browser_path = os.path.join(frontend_dir, "browser.msgpack")
+            backend_browser_path = os.path.join(relation_dir, "browser.msgpack")
+            frontend_browser_path = os.path.join(ui_dir, "browser.msgpack")
+            backend_browser_path = os.path.join(re)
             module_browser_path = os.path.join(module_dir, "browser.msgpack")
+            ui_default_path = os.path.join(ui_dir, "default.msgpack")
+            backend_script_path = os.path.join(relation_dir, "default.msgpack")
     
-            # meta_data.msgpack (initial content)
+            # initialize meta_data.msgpack
             meta = MsgSerializer(meta_path)
             meta._save({
                 "id": project.id,
@@ -81,16 +86,46 @@ class ProjectService:
                 "created_at": datetime.utcnow().isoformat()
             })
     
-            # create empty msgpack files (no initial data)
+            from ..utils.ids import short_id
+    
+            # initialize ui_browser.msgpack with main UI page
+            ui_init = MsgSerializer(frontend_browser_path)
+            ui_init._save({
+                "pid": short_id(),
+                "name": "main",
+                "created_at": datetime.utcnow().isoformat()
+            })
+    
+            # create a default UI page with hello world and a button
+            ui_default = MsgSerializer(ui_default_path)
+            ui_default._save({
+                "page": "default",
+                "elements": [
+                    {"type": "text", "value": "Hello World"},
+                    {"type": "button", "value": "Click Me", "action_id": short_id()}
+                ]
+            })
+            
+            # load back the saved data to access it
+            ui_data = ui_default._load()
+            
+            # use ui_data instead of ui_default._data
+            backend_script = MsgSerializer(backend_script_path)
+            backend_script._save({
+                "scripts": [
+                    {
+                        "action_id": ui_data["elements"][1]["action_id"],
+                        "response": "Button clicked successfully!"
+                    }
+                ]
+            })
+            
+            # create empty plugin and module browser files
             MsgSerializer(plugin_path)._save({})
-            MsgSerializer(backend_browser_path)._save({})
-            MsgSerializer(frontend_browser_path)._save({})
             MsgSerializer(module_browser_path)._save({})
     
         except Exception as e:
-            current_app.logger.error(
-                "failed to create project storage: %s", e
-            )
+            current_app.logger.error("failed to create project storage: %s", e)
     
         return project
     

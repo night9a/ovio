@@ -19,3 +19,5 @@ def register_user(email: str, username: str, password: str, name: str | None = N
     db.session.commit()
 
     return user
+def login_user(email: str, password: str):
+    pass

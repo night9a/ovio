@@ -111,7 +111,7 @@ export default function OvioEditor() {
 
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/projects/${projectId}/state`, {
+        const res = await fetch(`${API_BASE}/editor/${projectId}/state`, {
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -216,7 +216,7 @@ export default function OvioEditor() {
   const saveState = async (state) => {
     const token = localStorage.getItem('token');
     try {
-      await fetch(`${API_BASE}/projects/${projectId}/state`, {
+      await fetch(`${API_BASE}/editor/${projectId}/state`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(state)
