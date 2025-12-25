@@ -2,8 +2,7 @@
 from .user import User
 from .project import Project
 from .relation import Relation
-from .asset import Asset
-from .history import History
+from .public_asset import Asset
 from .template import Template
 from .host import Host
 from .dynamic_models import create_dynamic_models
@@ -13,8 +12,7 @@ __all__ = [
     "User",
     "Project",
     "Relation",
-    "Asset",
-    "History",
+    "PublicAsset",
     "Template",
     "Plugin",
     "create_dynamic_models",
