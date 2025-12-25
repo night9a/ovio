@@ -11,7 +11,7 @@ from flask import Blueprint, jsonify, request, current_app
 from ..extensions import db
 from ..models import User
 from ..headers.auth_header import require_auth
-from ..services.auth_service import register_user, RegisterError
+from ..services.auth_service import AuthService, AuthError
 #from functools import wraps
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -22,13 +22,13 @@ def register():
     data = request.get_json() or {}
 
     try:
-        user = register_user(
+        user = AuthService.register_user(
             email=data.get("email", ""),
             username=data.get("username", ""),
             password=data.get("password"),
             name=data.get("name"),
         )
-    except RegisterError as e:
+    except AuthError as e:
         return jsonify({"error": str(e)}), 400
 
     token = user.generate_auth_token()
@@ -46,15 +46,13 @@ def login():
     data = request.get_json() or {}
     email = (data.get("email") or "").strip().lower()
     password = data.get("password")
-
-    if not email or not password:
-        return jsonify({"error": "email and password are required"}), 400
-
-    user = User.query.filter_by(email=email).first()
-    if not user or not user.check_password(password):
-        return jsonify({"error": "invalid credentials"}), 401
-
-    token = user.generate_auth_token()
+    try:
+        token = AuthService.login_user(
+            email=email,
+            password=password,
+        )
+    except AuthError as e:
+        return jsonify({"error": str(e)}), 400
     return jsonify({"token": token, "expires_in": current_app.config.get("AUTH_TOKEN_EXPIRES", 3600)})
 
 @bp.route("/google", methods=["POST"])

@@ -10,6 +10,8 @@ from flask_socketio import join_room, leave_room
 from flask import session, send_file
 from collections import defaultdict
 from ..services.project_service import ProjectService,ProjectError
+
+
 bp = Blueprint("editor", __name__, url_prefix="/editor")
 
 

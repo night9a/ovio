@@ -4,3 +4,5 @@ export LIBGL_ALWAYS_SOFTWARE=1
 ./chapar
 
 command to run gio
+
+test nvim

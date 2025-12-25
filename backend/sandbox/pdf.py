@@ -8,6 +8,7 @@ from reportlab.lib.units import cm
 from datetime import date
 
 
+
 OVIO_BLACK = HexColor("#000000")
 OVIO_GRAY = HexColor("#6B7280")
 OVIO_YELLOW = HexColor("#FACC15")
