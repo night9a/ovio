@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ovio Console</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F9FAFB;
+            color: #111827;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: #000000;
+            color: #FFFFFF;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .current-time {
+            color: #9CA3AF;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            color: #6B7280;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #111827;
+            font-size: 32px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-value.error {
+            color: #DC2626;
+        }
+
+        .stat-value.success {
+            color: #16A34A;
+        }
+
+        .section {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+            align-items: center;
+        }
+
+        button {
+            background: #000000;
+            color: #FFFFFF;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1F2937;
+        }
+
+        button.active {
+            background: #FACC15;
+            color: #000000;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background: #F3F4F6;
+            color: #4B5563;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .filter-btn:hover {
+            background: #E5E7EB;
+        }
+
+        .filter-btn.active {
+            background: #000000;
+            color: #FFFFFF;
+        }
+
+        .error-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            background: #FEF2F2;
+            border-left: 3px solid #DC2626;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .error-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .error-endpoint {
+            font-weight: 600;
+            color: #DC2626;
+        }
+
+        .error-time {
+            color: #6B7280;
+            font-size: 12px;
+        }
+
+        .error-trace {
+            color: #4B5563;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            white-space: pre-wrap;
+            margin-top: 6px;
+        }
+
+        .request-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .request-table th {
+            background: #F9FAFB;
+            color: #6B7280;
+            font-weight: 500;
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #E5E7EB;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .request-table td {
+            padding: 10px;
+            border-bottom: 1px solid #F3F4F6;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .request-table tr:hover {
+            background: #F9FAFB;
+        }
+
+        .method {
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        .method.get { background: #DBEAFE; color: #1E40AF; }
+        .method.post { background: #D1FAE5; color: #065F46; }
+        .method.put { background: #FEF9C3; color: #854D0E; }
+        .method.delete { background: #FEE2E2; color: #991B1B; }
+
+        .status {
+            font-weight: 600;
+        }
+
+        .status.success { color: #16A34A; }
+        .status.error { color: #DC2626; }
+        .status.warning { color: #EA580C; }
+
+        .latency {
+            color: #6B7280;
+        }
+
+        .latency.slow {
+            color: #EA580C;
+            font-weight: 600;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .metric-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            padding: 16px;
+            border-radius: 6px;
+        }
+
+        .metric-title {
+            color: #6B7280;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            color: #111827;
+            font-size: 24px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #FEF9C3;
+            color: #854D0E;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #FACC15;
+        }
+
+        .scroll-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .info-bar {
+            background: #F3F4F6;
+            padding: 12px 16px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: #6B7280;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            color: #111827;
+            font-weight: 600;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ovio Console</h1>
+        <div class="current-time" id="currentTime"></div>
+    </header>
+
+    <div class="container">
+        <!-- System State -->
+        <div class="grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-value" id="totalRequests">248,392</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Errors</div>
+                <div class="stat-value error" id="totalErrors">1,247</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Error Rate</div>
+                <div class="stat-value" id="errorRate">0.50%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value success" id="uptime">99.8%</div>
+            </div>
+        </div>
+
+        <!-- System Resources & Bottlenecks -->
+        <div class="section">
+            <h2 class="section-title">System Resources</h2>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-title">CPU Usage</div>
+                    <div class="metric-value" id="cpuUsage" style="color: #EA580C;">68%</div>
+                    <div style="margin-top: 8px;">
+                        <div style="background: #E5E7EB; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div id="cpuBar" style="background: #EA580C; height: 100%; width: 68%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Memory Usage</div>
+                    <div class="metric-value" id="memUsage" style="color: #DC2626;">82%</div>
+                    <div style="margin-top: 8px;">
+                        <div style="background: #E5E7EB; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div id="memBar" style="background: #DC2626; height: 100%; width: 82%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Disk I/O</div>
+                    <div class="metric-value" id="diskIO">234 MB/s</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Read: 156 MB/s | Write: 78 MB/s</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Network Traffic</div>
+                    <div class="metric-value" id="networkTraffic">1.2 GB/s</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">In: 890 MB/s | Out: 310 MB/s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Traffic & Performance -->
+        <div class="section">
+            <h2 class="section-title">Traffic & Performance</h2>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Requests per Second</div>
+                    <div class="metric-value" id="rps">142</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Average Latency</div>
+                    <div class="metric-value" id="avgLatency">87ms</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Max Latency (5m)</div>
+                    <div class="metric-value" id="maxLatency">2,341ms</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Slowest Endpoint</div>
+                    <div class="metric-value" style="font-size: 14px;" id="slowestEndpoint">/api/analytics/export</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottleneck Analysis -->
+        <div class="section">
+            <h2 class="section-title">Bottleneck Analysis</h2>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Database Connections</div>
+                    <div class="metric-value" id="dbConnections">47/100</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Pool utilization: 47%</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Query Time (avg)</div>
+                    <div class="metric-value" id="queryTime">234ms</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Slow queries: 23</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Cache Hit Rate</div>
+                    <div class="metric-value success" id="cacheHitRate">94.2%</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Hits: 8,932 | Misses: 551</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Thread Pool</div>
+                    <div class="metric-value" id="threadPool">156/200</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Queue depth: 12</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">WebSocket Connections</div>
+                    <div class="metric-value" id="wsConnections">1,247</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Active: 1,198 | Idle: 49</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">API Rate Limit</div>
+                    <div class="metric-value" id="rateLimit">73%</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Throttled: 342 req/min</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Event Queue</div>
+                    <div class="metric-value" id="eventQueue">892</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">Processing rate: 245/s</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Load Average (1m)</div>
+                    <div class="metric-value" id="loadAvg">3.42</div>
+                    <div style="color: #6B7280; font-size: 12px; margin-top: 4px;">5m: 2.89 | 15m: 2.34</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Metrics -->
+        <div class="section">
+            <h2 class="section-title">User Analytics</h2>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Total Registered Users</div>
+                    <div class="metric-value" id="totalUsers">45,892</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Daily Active Users</div>
+                    <div class="metric-value" id="dau">8,234</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Monthly Active Users</div>
+                    <div class="metric-value" id="mau">23,567</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">User Growth (30d)</div>
+                    <div class="metric-value success" id="userGrowth">+12.4%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button onclick="refresh()">Refresh Now</button>
+            <button id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto-Refresh: OFF</button>
+            <div class="filter-group">
+                <button class="filter-btn" onclick="filterErrors()">Errors Only</button>
+                <button class="filter-btn" onclick="filterSlow()">Slow Requests</button>
+                <button class="filter-btn active" onclick="filterAll()">All Requests</button>
+            </div>
+        </div>
+
+        <!-- Error Visibility -->
+        <div class="section">
+            <h2 class="section-title">Recent Errors</h2>
+            <div class="error-list" id="errorList">
+                <div class="error-item">
+                    <div class="error-header">
+                        <span class="error-endpoint">POST /api/orders/checkout</span>
+                        <span class="error-time">2 minutes ago</span>
+                    </div>
+                    <div>Status: 500 Internal Server Error</div>
+                    <div class="error-trace">TypeError: Cannot read property 'id' of undefined
+    at OrderService.processPayment (order.service.js:142)
+    at async OrderController.checkout (order.controller.js:67)</div>
+                </div>
+                <div class="error-item">
+                    <div class="error-header">
+                        <span class="error-endpoint">GET /api/users/profile/8392</span>
+                        <span class="error-time">5 minutes ago</span>
+                    </div>
+                    <div>Status: 404 Not Found</div>
+                    <div class="error-trace">UserNotFoundError: User with ID 8392 does not exist
+    at UserService.findById (user.service.js:89)</div>
+                </div>
+                <div class="error-item">
+                    <div class="error-header">
+                        <span class="error-endpoint">POST /api/auth/login</span>
+                        <span class="error-time">8 minutes ago</span>
+                    </div>
+                    <div>Status: 429 Too Many Requests</div>
+                    <div class="error-trace">RateLimitError: Rate limit exceeded for IP 192.168.1.42
+    at RateLimiter.check (limiter.js:34)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="section">
+            <h2 class="section-title">Recent Requests <span class="badge">Live Tail</span></h2>
+            <div class="scroll-container">
+                <table class="request-table" id="requestTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Method</th>
+                            <th>Path</th>
+                            <th>Status</th>
+                            <th>Latency</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefresh = false;
+        let autoRefreshInterval;
+        let currentFilter = 'all';
+
+        const sampleRequests = [
+            { method: 'GET', path: '/api/users', status: 200, latency: 45 },
+            { method: 'POST', path: '/api/orders', status: 201, latency: 123 },
+            { method: 'GET', path: '/api/products/search', status: 200, latency: 234 },
+            { method: 'PUT', path: '/api/users/profile', status: 200, latency: 89 },
+            { method: 'DELETE', path: '/api/cart/items/42', status: 204, latency: 34 },
+            { method: 'GET', path: '/api/analytics/dashboard', status: 200, latency: 567 },
+            { method: 'POST', path: '/api/auth/logout', status: 200, latency: 23 },
+            { method: 'GET', path: '/api/orders/history', status: 200, latency: 1456 },
+            { method: 'GET', path: '/api/notifications', status: 200, latency: 67 },
+            { method: 'POST', path: '/api/payments/process', status: 500, latency: 234 },
+            { method: 'GET', path: '/api/users/8392', status: 404, latency: 12 },
+            { method: 'GET', path: '/health', status: 200, latency: 5 },
+            { method: 'POST', path: '/api/feedback', status: 201, latency: 78 },
+            { method: 'GET', path: '/api/settings', status: 200, latency: 45 },
+            { method: 'PUT', path: '/api/orders/42/status', status: 200, latency: 156 }
+        ];
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleString('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function getStatusClass(status) {
+            if (status >= 200 && status < 300) return 'success';
+            if (status >= 400 && status < 500) return 'warning';
+            if (status >= 500) return 'error';
+            return '';
+        }
+
+        function getLatencyClass(latency) {
+            return latency > 1000 ? 'slow' : '';
+        }
+
+        function generateRequest() {
+            const req = sampleRequests[Math.floor(Math.random() * sampleRequests.length)];
+            const now = new Date();
+            return {
+                ...req,
+                time: now.toLocaleTimeString('en-US', { hour12: false })
+            };
+        }
+
+        function renderRequests() {
+            const tbody = document.getElementById('requestBody');
+            const requests = [];
+            
+            for (let i = 0; i < 50; i++) {
+                requests.push(generateRequest());
+            }
+
+            const filteredRequests = requests.filter(req => {
+                if (currentFilter === 'errors') return req.status >= 400;
+                if (currentFilter === 'slow') return req.latency > 1000;
+                return true;
+            });
+
+            tbody.innerHTML = filteredRequests.map(req => `
+                <tr>
+                    <td>${req.time}</td>
+                    <td><span class="method ${req.method.toLowerCase()}">${req.method}</span></td>
+                    <td>${req.path}</td>
+                    <td class="status ${getStatusClass(req.status)}">${req.status}</td>
+                    <td class="latency ${getLatencyClass(req.latency)}">${req.latency}ms</td>
+                </tr>
+            `).join('');
+        }
+
+        function refresh() {
+            renderRequests();
+            
+            // Animate stat updates
+            document.getElementById('totalRequests').textContent = (248392 + Math.floor(Math.random() * 1000)).toLocaleString();
+            document.getElementById('rps').textContent = 120 + Math.floor(Math.random() * 50);
+            
+            // Update system resources
+            const cpuUsage = 50 + Math.floor(Math.random() * 40);
+            const memUsage = 70 + Math.floor(Math.random() * 25);
+            document.getElementById('cpuUsage').textContent = cpuUsage + '%';
+            document.getElementById('memUsage').textContent = memUsage + '%';
+            document.getElementById('cpuBar').style.width = cpuUsage + '%';
+            document.getElementById('memBar').style.width = memUsage + '%';
+            
+            // Color coding for CPU
+            const cpuElement = document.getElementById('cpuUsage');
+            if (cpuUsage > 80) {
+                cpuElement.style.color = '#DC2626';
+                document.getElementById('cpuBar').style.background = '#DC2626';
+            } else if (cpuUsage > 60) {
+                cpuElement.style.color = '#EA580C';
+                document.getElementById('cpuBar').style.background = '#EA580C';
+            } else {
+                cpuElement.style.color = '#16A34A';
+                document.getElementById('cpuBar').style.background = '#16A34A';
+            }
+            
+            // Color coding for Memory
+            const memElement = document.getElementById('memUsage');
+            if (memUsage > 85) {
+                memElement.style.color = '#DC2626';
+                document.getElementById('memBar').style.background = '#DC2626';
+            } else if (memUsage > 70) {
+                memElement.style.color = '#EA580C';
+                document.getElementById('memBar').style.background = '#EA580C';
+            } else {
+                memElement.style.color = '#16A34A';
+                document.getElementById('memBar').style.background = '#16A34A';
+            }
+            
+            // Update bottleneck metrics
+            document.getElementById('dbConnections').textContent = (40 + Math.floor(Math.random() * 20)) + '/100';
+            document.getElementById('queryTime').textContent = (150 + Math.floor(Math.random() * 200)) + 'ms';
+            document.getElementById('threadPool').textContent = (140 + Math.floor(Math.random() * 40)) + '/200';
+            document.getElementById('eventQueue').textContent = (800 + Math.floor(Math.random() * 300)).toLocaleString();
+            
+            // Update network traffic
+            const networkIn = (700 + Math.floor(Math.random() * 400));
+            const networkOut = (250 + Math.floor(Math.random() * 150));
+            const networkTotal = ((networkIn + networkOut) / 1000).toFixed(1);
+            document.getElementById('networkTraffic').textContent = networkTotal + ' GB/s';
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const btn = document.getElementById('autoRefreshBtn');
+            
+            if (autoRefresh) {
+                btn.textContent = 'Auto-Refresh: ON';
+                btn.classList.add('active');
+                autoRefreshInterval = setInterval(refresh, 5000);
+            } else {
+                btn.textContent = 'Auto-Refresh: OFF';
+                btn.classList.remove('active');
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        function filterErrors() {
+            currentFilter = 'errors';
+            updateFilterButtons();
+            renderRequests();
+        }
+
+        function filterSlow() {
+            currentFilter = 'slow';
+            updateFilterButtons();
+            renderRequests();
+        }
+
+        function filterAll() {
+            currentFilter = 'all';
+            updateFilterButtons();
+            renderRequests();
+        }
+
+        function updateFilterButtons() {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (currentFilter === 'errors') {
+                document.querySelectorAll('.filter-btn')[0].classList.add('active');
+            } else if (currentFilter === 'slow') {
+                document.querySelectorAll('.filter-btn')[1].classList.add('active');
+            } else {
+                document.querySelectorAll('.filter-btn')[2].classList.add('active');
+            }
+        }
+
+        // Initialize
+        updateTime();
+        setInterval(updateTime, 1000);
+        renderRequests();
+    </script>
+</body>
+</html>

@@ -11,6 +11,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     google_id = db.Column(db.String(255), unique=True, nullable=True,default=None)
+    #github_id = db.Column(db.String(255), unique=True, nullable=True,default=None)
     email = db.Column(db.String(255), unique=True, nullable=False)
     username = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
