@@ -4,6 +4,7 @@ from ..extensions import db
 from ..models import Project
 from ..utils.msg_serializer import MsgSerializer
 from datetime import datetime
+from ..utils.ids import short_id
 
 
 class ProjectError(Exception):
@@ -52,17 +53,16 @@ class ProjectService:
         existing = Project.query.filter_by(name=name, owner_id=user.id).first()
         if existing:
             raise ProjectError("project with this name already exists")
-
         project = Project(name=name, owner_id=user.id)
         db.session.add(project)
         db.session.commit()
-
+        
         storage_root = ProjectService.get_storage_root()
         os.makedirs(storage_root, exist_ok=True)
-
+        print("done")
         proj_dir = os.path.join(storage_root, str(project.id), "autosave")
         os.makedirs(proj_dir, exist_ok=True)
-
+        print("maybe")
         # directories
         relation_dir = os.path.join(proj_dir, "relation")
         ui_dir = os.path.join(proj_dir, "ui")
@@ -70,65 +70,82 @@ class ProjectService:
         os.makedirs(relation_dir, exist_ok=True)
         os.makedirs(ui_dir, exist_ok=True)
         os.makedirs(module_dir, exist_ok=True)
-
-        # paths for msgpack files
+        
+        # msgpack paths
         meta_path = os.path.join(proj_dir, "meta_data.msgpack")
         plugin_path = os.path.join(proj_dir, "plugin.msgpack")
+        
         relation_browser_path = os.path.join(relation_dir, "browser.msgpack")
         ui_browser_path = os.path.join(ui_dir, "browser.msgpack")
         module_browser_path = os.path.join(module_dir, "browser.msgpack")
-        ui_default_path = os.path.join(ui_dir, "default.msgpack")
-        relation_script_path = os.path.join(relation_dir, "default.msgpack")
-
+        
+        ui_main_path = os.path.join(ui_dir, "main.msgpack")
+        relation_main_path = os.path.join(relation_dir, "main.msgpack")
+        print("baby")
         try:
-            # initialize meta_data.msgpack
-            meta = MsgSerializer(meta_path)
-            meta._save({
+            # meta
+            MsgSerializer(meta_path)._save({
                 "id": project.id,
                 "name": project.name,
                 "description": description,
                 "version": "0.0.1",
                 "created_at": datetime.utcnow().isoformat()
             })
-
-
-            # initialize ui_browser.msgpack with main UI page
-            ui_init = MsgSerializer(ui_browser_path)
-            ui_init._save({
-                "pid": short_id(),
-                "name": "main",
-                "created_at": datetime.utcnow().isoformat()
-            })
-
-            # create a default UI page
-            ui_default = MsgSerializer(ui_default_path)
-            ui_default._save({
-                "page": "default",
-                "elements": [
-                    {"type": "text", "value": "Hello World"},
-                    {"type": "button", "value": "Click Me", "action_id": short_id()}
-                ]
-            })
-
-            ui_data = ui_default._load()
-
-            # backend script for button
-            backend_script = MsgSerializer(relation_script_path)
-            backend_script._save({
-                "scripts": [
+        
+            page_id = short_id()
+            action_id = short_id()
+        
+            # ui browser → points to main
+            MsgSerializer(ui_browser_path)._save({
+                "pages": [
                     {
-                        "action_id": ui_data["elements"][1]["action_id"],
-                        "response": "Button clicked successfully!"
+                        "pid": page_id,
+                        "name": "main",
+                        "entry": True,
+                        "created_at": datetime.utcnow().isoformat()
                     }
                 ]
             })
-
-            # create empty plugin and module browser files
+        
+            # relation browser → points to main
+            MsgSerializer(relation_browser_path)._save({
+                "scripts": [
+                    {
+                        "name": "main",
+                        "entry": True,
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+                ]
+            })
+        
+            # ui/main.msgpack
+            MsgSerializer(ui_main_path)._save({
+                "page": "main",
+                "elements": [
+                    {"type": "text", "value": "Hello World"},
+                    {"type": "button", "value": "Click Me", "action_id": action_id}
+                ]
+            })
+            
+            # relation/main.msgpack
+            MsgSerializer(relation_main_path)._save({
+                "scripts": [
+                    {
+                        "action_id": action_id,
+                        "response": {
+                            "type": "pop_msg",
+                            "msg": "button clicked"
+                        }
+                    }
+                ]
+            })
+            
+            # empty plugin & module browser
             MsgSerializer(plugin_path)._save({})
             MsgSerializer(module_browser_path)._save({})
-
+        
         except Exception as e:
             current_app.logger.error("failed to create project storage: %s", e)
-
+        
         return project
-
+        
