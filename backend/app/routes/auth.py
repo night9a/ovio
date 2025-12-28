@@ -12,6 +12,7 @@ from ..extensions import db
 from ..models import User
 from ..headers.auth_header import require_auth
 from ..services.auth_service import AuthService, AuthError
+
 #from functools import wraps
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
