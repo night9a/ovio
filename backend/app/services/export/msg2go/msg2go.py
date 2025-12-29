@@ -1,5 +1,7 @@
 from ...utils.msg_serializer import MsgSerializer
 import os
+import composer
+import roller
 
 
 dir_export == ""
@@ -26,14 +28,13 @@ class Run:
         relation = MsgSerializer(relation_main_path)._load()
         return ui, relation
     
-    def build_ir():
-        """build Intermediate Representation."""
+    def call_composer():
         pass
-    def call_composer(build_ir):
+    def call_roller(build_ir):
         pass
-
     def write_the_result_of_composer():
         pass
+    
     
     """def add casulal things 
 build ir send it to composer.py """

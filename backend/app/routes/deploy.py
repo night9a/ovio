@@ -8,12 +8,17 @@ import json
 bp = Blueprint("deploy", __name__, url_prefix="/app")
 
 
+@bp.route("/<string:project_id>/deploy", methods=["POST"])
+@require_auth
+def deploy_project(project_id):
+    return "w"
 
 #TODO to move into deploy route
+"""
 @bp.route("/<int:project_id>/deploy", methods=["POST"])
 @require_auth
 def deploy_project(project_id):
-    """Deploy project to web and create a public link."""
+    Deploy project to web and create a public link.
     user = request.current_user
     project = Project.query.filter_by(id=project_id, owner_id=user.id).first()
     
@@ -97,7 +102,7 @@ def deploy_project(project_id):
             name = comp.get('name', 'Component')
             components_html += f'<div class="component-item" style="left: {x}px; top: {y}px;"><div class="text-gray-500">{name}</div></div>\n'
 
-    html_page = f"""<!DOCTYPE html>
+    html_page = f<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -120,7 +125,7 @@ def deploy_project(project_id):
     </div>
     <script>function handleComponentAction(componentId){{console.log('Component ' + componentId + ' clicked');alert('Component action triggered');}}</script>
 </body>
-</html>"""
+</html>
 
     # Write static file to deploy directory
     try:
@@ -148,3 +153,4 @@ def deploy_project(project_id):
         "deployment_date": host.deployment_date.isoformat() if host.deployment_date else None,
         "status": host.status
     }), 201
+"""

@@ -62,7 +62,6 @@ class ProjectService:
         print("done")
         proj_dir = os.path.join(storage_root, str(project.id), "autosave")
         os.makedirs(proj_dir, exist_ok=True)
-        print("maybe")
         # directories
         relation_dir = os.path.join(proj_dir, "relation")
         ui_dir = os.path.join(proj_dir, "ui")
@@ -81,7 +80,6 @@ class ProjectService:
         
         ui_main_path = os.path.join(ui_dir, "main.msgpack")
         relation_main_path = os.path.join(relation_dir, "main.msgpack")
-        print("baby")
         try:
             # meta
             MsgSerializer(meta_path)._save({
@@ -133,7 +131,7 @@ class ProjectService:
                     {
                         "action_id": action_id,
                         "response": {
-                            "type": "pop_msg",
+                            "type": "show_text",
                             "msg": "button clicked"
                         }
                     }

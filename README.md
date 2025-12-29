@@ -14,3 +14,7 @@ currently fix the project structure creating with init simple button
 that show hello world
 and make the export route to build it 
 
+
+offer all feuture for free so people can learn build and maintaint on it 
+so help them grow and when reach limitition and success they will payback becuase 
+they can't leave 
