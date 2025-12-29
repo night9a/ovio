@@ -18,10 +18,11 @@ def create_app(config_object=None):
     """
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_object or DevelopmentConfig)
-
+    
     # initialize extensions (db, socketio, etc.)
     init_extensions(app)
-
+    #load the components from components folder and insert them or update 
+    #them into the database
     # register blueprints lazily to avoid circular imports
     from .routes import auth, projects, deploy,plugin,editor  # noqa: E402
 

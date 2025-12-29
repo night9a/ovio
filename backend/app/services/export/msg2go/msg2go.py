@@ -1,7 +1,7 @@
 from ....utils.msg_serializer import MsgSerializer
 from ...project_service import ProjectService
 import os
-#import composer
+import composer
 #import roller
 
 
@@ -28,14 +28,28 @@ class Run:
         ui = MsgSerializer(ui_main_path)._load()
         relation = MsgSerializer(relation_main_path)._load()
         return ui, relation
-    """
-    def call_composer():
+    
+    def call_composer(self):
+        ui,_ = get_src()
+        result = composer(ui)
+        return result
+    def call_roller(self):
+        _,relation = get_src()
+        result = composer(relation)
+        return result
+    def call_modular(self):
         pass
-    def call_roller(build_ir):
+    def call_pluger(self):
         pass
-    def write_the_result_of_composer():
-        pass
-    """
+    def run():
+        r = call_composer
+        os write (r)
+        call roller()
+        os write (r)
+        #call_modular()
+        #call_pluger()
+        
+    
     
     """def add casulal things 
 build ir send it to composer.py """
