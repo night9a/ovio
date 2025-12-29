@@ -1,10 +1,11 @@
-from ...utils.msg_serializer import MsgSerializer
+from ....utils.msg_serializer import MsgSerializer
+from ...project_service import ProjectService
 import os
-import composer
-import roller
+#import composer
+#import roller
 
 
-dir_export == ""
+#dir_export == ""
 
 class Run:
     def __init__(self,pid):
@@ -15,7 +16,7 @@ class Run:
         return os.path.abspath(
             os.path.join(current_app.root_path, "..", "storage/projects")
         )
-    def get_src(pid, **kwargs):
+    def get_src(self, **kwargs):
         storage_root = ProjectService.get_storage_root()
 
         proj_dir = os.path.join(storage_root, str(self.pid), "autosave")
@@ -27,17 +28,15 @@ class Run:
         ui = MsgSerializer(ui_main_path)._load()
         relation = MsgSerializer(relation_main_path)._load()
         return ui, relation
-    
+    """
     def call_composer():
         pass
     def call_roller(build_ir):
         pass
     def write_the_result_of_composer():
         pass
-    
+    """
     
     """def add casulal things 
 build ir send it to composer.py """
-test = Run()
-ui,relation = test.get_src("Pld4z9a")
-print(ui)
+

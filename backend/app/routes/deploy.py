@@ -1,18 +1,19 @@
 """Routes for publicly accessing deployed projects."""
-from flask import Blueprint, abort, current_app
+from flask import Blueprint, jsonify, request, current_app
 from ..models import Host, Project
 from ..headers.auth_header import require_auth
+from ..services.deploy_service import DeployError,DeployService
 import os
 import json
 
-bp = Blueprint("deploy", __name__, url_prefix="/app")
+bp = Blueprint("deploy", __name__, url_prefix="/deploy")
 
 
 @bp.route("/<string:project_id>/deploy", methods=["POST"])
-@require_auth
+#@require_auth CURRENTLY TESTING
 def deploy_project(project_id):
-    return "w"
-
+    a = DeployService.deploy_project(project_id)
+    return a
 #TODO to move into deploy route
 """
 @bp.route("/<int:project_id>/deploy", methods=["POST"])

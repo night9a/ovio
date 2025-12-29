@@ -1,5 +1,6 @@
 class Button()
-    def __attribute__():
-        pass
     def show_text(text):
         pass
+    def navigate(page_id):
+        pass
+
