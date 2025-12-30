@@ -119,11 +119,24 @@ class ProjectService:
             # ui/main.msgpack
             MsgSerializer(ui_main_path)._save({
                 "page": "main",
+            
+                "window": {
+                    "title": "Main Window"
+                },
+            
                 "elements": [
-                    {"type": "text", "value": "Hello World"},
-                    {"type": "button", "value": "Click Me", "action_id": action_id}
+                    {
+                        "type": "text",
+                        "value": "Hello World"
+                    },
+                    {
+                        "type": "button",
+                        "value": "Click Me",
+                        "action_id": action_id
+                    }
                 ]
             })
+            
             
             # relation/main.msgpack
             MsgSerializer(relation_main_path)._save({

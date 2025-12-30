@@ -1,19 +1,16 @@
-import os
-
-current_directory = os.getcwd()
-print(current_directory)
-
-
 from .export.msg2go import msg2go
 
 class DeployError():
     pass
 
-class DeployService():
+class DeployService:
     @staticmethod
-    def deploy_project(pid):
-        test = msg2go.Run(pid)
-        ui,relation = test.get_src()
-        return ui
-        
-    
+    def deploy_project(pid,data):
+        """
+        Build and export Go source for a project.
+        Returns path to generated main.go
+        """
+        runner = msg2go.Run(pid)
+        result_path = runner.run()
+        return result_path
+

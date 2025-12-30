@@ -9,11 +9,12 @@ import json
 bp = Blueprint("deploy", __name__, url_prefix="/deploy")
 
 
-@bp.route("/<string:project_id>/deploy", methods=["POST"])
+@bp.route("/<string:project_id>/deploy", methods=["GET"])
 #@require_auth CURRENTLY TESTING
 def deploy_project(project_id):
     #check if project exist in user and have permission
-    data = request.get_json() or {}
+    #data = request.get_json() or {}
+    data = "test"
     if data:
         a = DeployService.deploy_project(project_id,data)
         return a 
