@@ -121,7 +121,7 @@ class ProjectService:
                 "page": "main",
             
                 "window": {
-                    "title": "Main Window"
+                    "title": "ibrahim app"
                 },
             
                 "elements": [

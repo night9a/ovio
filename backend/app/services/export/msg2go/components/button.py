@@ -42,17 +42,15 @@ class Button:
 
     def get_imports(self) -> Dict[str, List[str]]:
         imports: Dict[str, List[str]] = {}
-
+    
         def add(pkg: str, symbol: str):
             imports.setdefault(pkg, [])
             if symbol not in imports[pkg]:
                 imports[pkg].append(symbol)
-
+    
         add("gioui.org/widget", "Clickable")
         add("gioui.org/widget/material", "Button")
-        add("gioui.org/layout", "Rigid")
-        add("gioui.org/unit", "Dp")
-
+    
         return imports
 
     # -------------------------
@@ -74,11 +72,4 @@ class Button:
         Returns Go code for placement inside layout.Rigid.
         Uses 'th' theme and 'gtx' context.
         """
-        enabled_str = "true" if self.enabled else "false"
-
-        return f"""
-b := material.Button(th, &{self.var_name}, "{self.text}")
-{self.var_name}.SetEnabled({enabled_str})
-return b.Layout(gtx)
-""".strip()
-
+        return f'return material.Button(th, &{self.var_name}, "{self.text}").Layout(gtx)'

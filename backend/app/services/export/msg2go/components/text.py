@@ -16,10 +16,9 @@ class Text:
     def get_imports(self) -> Dict[str, List[str]]:
         return {
             "gioui.org/widget/material": ["Label"],
+            "gioui.org/unit": ["Sp"],
         }
 
     def to_go(self) -> str:
-        return f'''
-_ = material.Label(th, unit.Sp(16), "{self.value}")
-'''.strip()
-
+        # Fixed to return the label's layout dimensions
+        return f'return material.Label(th, unit.Sp(16), "{self.value}").Layout(gtx)'

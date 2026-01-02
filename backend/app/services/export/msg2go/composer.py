@@ -11,6 +11,8 @@ class Composer:
         self.ui = ui
         self.components = []
         self.imports: Dict[str, List[str]] = {}
+        self.window = None
+        self.window_options = []
 
     # -------------------------
     # Reader
@@ -23,7 +25,9 @@ class Composer:
             window_cls = COMPONENT_REGISTRY.get("window")
             if not window_cls:
                 raise RuntimeError("Window component not registered")
-            self.components.append(window_cls(**window_cfg))
+            self.window = window_cls(**window_cfg)
+            # Extract window options for later use
+            self._extract_window_options()
 
         # Elements
         for elem in self.ui.get("elements", []):
@@ -35,11 +39,43 @@ class Composer:
                 raise ValueError(f"unknown component type: {ctype}")
             self.components.append(component_cls.from_spec(elem))
 
+    def _extract_window_options(self):
+        """Extract window options from the window object"""
+        if not self.window:
+            return
+            
+        # Always add title
+        if self.window.title:
+            self.window_options.append(f'app.Title("{self.window.title}")')
+        else:
+            self.window_options.append('app.Title("App")')
+        
+        # Always add size (use provided or default)
+        if self.window.width and self.window.height:
+            self.window_options.append(
+                f'app.Size(unit.Dp({self.window.width}), unit.Dp({self.window.height}))'
+            )
+        else:
+            # Default size
+            self.window_options.append('app.Size(unit.Dp(400), unit.Dp(600))')
+        
+        if self.window.fullscreen:
+            self.window_options.append('app.Fullscreen(true)')
     # -------------------------
     # Import aggregation
     # -------------------------
 
     def collect_imports(self):
+        # Add imports from window
+        if self.window:
+            comp_imports = self.window.get_imports()
+            for pkg, symbols in comp_imports.items():
+                self.imports.setdefault(pkg, [])
+                for sym in symbols:
+                    if sym not in self.imports[pkg]:
+                        self.imports[pkg].append(sym)
+        
+        # Add imports from components
         for comp in self.components:
             comp_imports = comp.get_imports()
             for pkg, symbols in comp_imports.items():
@@ -47,9 +83,24 @@ class Composer:
                 for sym in symbols:
                     if sym not in self.imports[pkg]:
                         self.imports[pkg].append(sym)
-        # Ensure layout and unit imports
-        self.imports.setdefault("gioui.org/layout", [])
-        self.imports.setdefault("gioui.org/unit", [])
+        
+        # Ensure essential imports
+        essential_imports = {
+            "os": [],
+            "gioui.org/app": [],
+            "gioui.org/op": [],
+            "gioui.org/unit": [],
+            "gioui.org/widget": [],
+            "gioui.org/widget/material": [],
+            "gioui.org/layout": [],
+        }
+        
+        for pkg, symbols in essential_imports.items():
+            self.imports.setdefault(pkg, [])
+            # Add essential symbols if not already present
+            for sym in symbols:
+                if sym not in self.imports[pkg]:
+                    self.imports[pkg].append(sym)
 
     # -------------------------
     # Go code assembly
@@ -59,23 +110,17 @@ class Composer:
         self.read()
         self.collect_imports()
 
-        import_block = "\n".join('\t"{}"'.format(pkg) for pkg in sorted(self.imports.keys()))
+        # Build import block
+        import_lines = []
+        for pkg in sorted(self.imports.keys()):
+            import_lines.append(f'\t"{pkg}"')
+        import_block = "\n".join(import_lines)
 
-        # Separate window from other components
-        window_code = ""
-        other_code = []
-
-        for comp in self.components:
-            if comp.__class__.__name__.lower() == "window":
-                window_code = comp.to_go()  # Should produce goroutine + w declaration
-            else:
-                other_code.append(comp)
-
-        # Prepare stateful declarations for components (e.g., buttons)
+        # Prepare stateful declarations and layout calls
         state_decls = []
         layout_calls = []
 
-        for comp in other_code:
+        for comp in self.components:
             if hasattr(comp, "state_decl") and comp.state_decl():
                 state_decls.append(comp.state_decl())
             layout_calls.append(comp.to_go())
@@ -83,35 +128,92 @@ class Composer:
         # Build layout block
         layout_block_lines = []
         for lc in layout_calls:
+            # Ensure proper indentation and returns
+            lc_lines = lc.strip().split('\n')
+            indented_lines = []
+            for line in lc_lines:
+                if line.strip() == "":
+                    continue
+                if not line.startswith('\t'):
+                    line = '\t\t\t\t\t' + line
+                else:
+                    line = '\t\t\t\t' + line
+                indented_lines.append(line)
+            
+            block_content = "\n".join(indented_lines)
+            
+            # Ensure the block returns something
+            if "return" not in block_content:
+                block_content = block_content.rstrip() + "\n\t\t\t\t\treturn layout.Dimensions{}"
+            
             layout_block_lines.append(
-                "\t\t\tlayout.Rigid(func(gtx layout.Context) layout.Dimensions {\n" +
-                lc + "\n\t\t\t}),"
+                "\t\t\t\tlayout.Rigid(func(gtx layout.Context) layout.Dimensions {\n" +
+                block_content + "\n" +
+                "\t\t\t\t}),"
             )
+        
         layout_block = "\n".join(layout_block_lines)
 
-        # Build final code using string concatenation to avoid f-string backslash issues
+        # Build window creation code
+        window_creation = ['\t\tw := new(app.Window)']
+        
+        if self.window_options:
+            for opt in self.window_options:
+                window_creation.append(f"\t\tw.Option({opt})")
+        else:
+            # Default options
+            window_creation.append('\t\tw.Option(app.Title("App"))')
+            window_creation.append('\t\tw.Option(app.Size(unit.Dp(400), unit.Dp(600)))')
+        
+        window_code = "\n".join(window_creation)
+
+        # Build the final code - FIXED: removed duplicate w := app.NewWindow()
         final_code = (
             "package main\n\n"
             "import (\n"
             f"{import_block}\n"
             ")\n\n"
             "func main() {\n"
-            f"{window_code}\n\n"
-            "\tth := material.NewTheme()\n\n"
+            "\tgo func() {\n"
+            f"{window_code}\n\n"  # This includes w := new(app.Window)
+            "\t\tvar ops op.Ops\n\n"
         )
-
-        for decl in state_decls:
-            final_code += "\t" + decl + "\n"
-
+        
+        # Add state declarations
+        if state_decls:
+            for decl in state_decls:
+                final_code += f"\t\t{decl}\n"
+            final_code += "\n"
+        
         final_code += (
-            "\n\tfor e := range w.Events() {\n"
-            "\t\tgtx := layout.NewContext(&e.Queue, e)\n"
-            "\t\tlayout.Flex{Axis: layout.Vertical}.Layout(gtx,\n"
-            f"{layout_block}\n"
-            "\t\t)\n"
-            "\t}\n"
+            "\t\tth := material.NewTheme()\n\n"
+            "\t\tfor {\n"
+            "\t\t\te := w.Event()\n"
+            "\t\t\tswitch ev := e.(type) {\n"
+            "\t\t\tcase app.FrameEvent:\n"
+            "\t\t\t\tgtx := app.NewContext(&ops, ev)\n"
+        )
+        
+        # Add layout calls - FIXED indentation
+        # In the build() method, change this:
+        if layout_block:
+            final_code += (
+                "\t\t\t\tlayout.Flex{Axis: layout.Vertical}.Layout(gtx,\n"
+                f"{layout_block}\n"  # Remove the extra \t\t\t\t here
+                "\t\t\t\t)\n"
+            )
+        else:
+            final_code += "\t\t\t\t// No UI components defined\n"
+        
+        final_code += (
+            "\t\t\t\tev.Frame(gtx.Ops)\n"
+            "\t\t\tcase app.DestroyEvent:\n"
+            "\t\t\t\tos.Exit(0)\n"
+            "\t\t\t}\n"
+            "\t\t}\n"
+            "\t}()\n"
+            "\tapp.Main()\n"
             "}\n"
         )
 
         return final_code
-

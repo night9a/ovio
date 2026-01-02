@@ -1,4 +1,4 @@
-class SnapshotError():
+class SnapshotError(Exception):
     pass
 
 class SnapshotService():

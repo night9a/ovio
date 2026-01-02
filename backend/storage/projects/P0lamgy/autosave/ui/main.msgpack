@@ -1,0 +1,7 @@
+ƒ¤page¤main¦window¥title«ibrahim app¨elements’‚¤type¤text¥value«Hello WorldÙÈ,
+                    {
+                        "type": "button",
+                        "value": "Click Me",
+                        "action_id": action_id
+                    }
+                    

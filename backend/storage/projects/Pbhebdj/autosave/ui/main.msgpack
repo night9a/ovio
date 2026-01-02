@@ -1,0 +1,11 @@
+É§page§main¶windowÅ•title´ibrahim app®elementsë⁄G
+                    {
+                        "type": "text",
+                        "value": "Hello World"
+                    },
+                    {
+                        "type": "button",
+                        "value": "Click Me",
+                        "action_id": action_id
+                    }
+                
