@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
+<abiword template="false" xmlns:ct="http://www.abisource.com/changetracking.dtd" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:math="http://www.w3.org/1998/Math/MathML" xid-max="19" xmlns:dc="http://purl.org/dc/elements/1.1/" fileformat="1.1" xmlns:svg="http://www.w3.org/2000/svg" xmlns:awml="http://www.abisource.com/awml.dtd" xmlns="http://www.abisource.com/awml.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" version="3.0.5" xml:space="preserve" props="dom-dir:ltr; document-footnote-restart-section:0; document-endnote-type:numeric; document-endnote-place-enddoc:1; document-endnote-initial:1; lang:C-US; document-endnote-restart-section:0; document-footnote-restart-page:0; document-footnote-type:numeric; document-footnote-initial:1; document-endnote-place-endsection:0">
+<!-- ======================================================================== -->
+<!-- This file is an AbiWord document.                                        -->
+<!-- AbiWord is a free, Open Source word processor.                           -->
+<!-- More information about AbiWord is available at http://www.abisource.com/ -->
+<!-- You should not edit this file by hand.                                   -->
+<!-- ======================================================================== -->
+
+<metadata>
+<m key="abiword.date_last_changed">Fri Jan  2 09:47:30 2026
+</m>
+<m key="abiword.generator">AbiWord</m>
+<m key="dc.date">Fri Jan  2 09:47:30 2026
+</m>
+<m key="dc.format">application/x-abiword</m>
+</metadata>
+<rdf>
+</rdf>
+<history version="2" edit-time="181" last-saved="1767383250" uid="73a27b80-e813-11f0-92bc-ad1c2734cef2">
+<version id="2" started="1767383213" uid="dfaf670c-e813-11f0-92bc-ad1c2734cef2" auto="0" top-xid="2"/>
+</history>
+<styles>
+<s type="P" name="Title" basedon="_Normal" props="lang:ar-SA; margin-top:0.100000pt; font-weight:bold; font-family:Bookman Old Style; font-size:28.000000pt; margin-left:17.500000pt"/>
+<s type="P" name="_Normal" basedon="Normal" props="font-family:Bookman Old Style; lang:ar-SA"/>
+<s type="P" name="Normal" basedon="Normal" followedby="Current Settings" props="margin-top:0.000000pt; margin-left:0.000000pt; font-size:11.000000pt; margin-bottom:0.000000pt; lang:ar-SA; line-height:1.000000; text-align:left; margin-right:0.000000pt; font-family:Calibri"/>
+<s type="P" name="Body Text" basedon="_Normal" props="lang:ar-SA; text-indent:-10.850000pt; font-size:12.000000pt; font-family:Bookman Old Style; margin-left:28.350000pt"/>
+<s type="P" name="Heading 1" basedon="_Normal" props="lang:ar-SA; margin-top:13.850000pt; font-size:12.000000pt; font-family:Bookman Old Style; margin-left:17.500000pt"/>
+<s type="P" name="List Paragraph" basedon="_Normal" props="lang:ar-SA; text-indent:-10.850000pt; font-family:Bookman Old Style; margin-left:28.350000pt"/>
+<s type="C" name="Default Paragraph Font" basedon="Normal"/>
+<s type="P" name="No List" basedon="Normal"/>
+<s type="P" name="Table Normal" basedon="Normal"/>
+<s type="P" name="Table Paragraph" basedon="_Normal" props="lang:ar-SA"/>
+</styles>
+<lists>
+<l id="100" parentid="0" type="5" start-value="0" list-delim="%L." list-decimal="."/>
+</lists>
+<pagesize pagetype="Letter" orientation="portrait" width="8.500000" height="11.000000" units="in" page-scale="1.000000"/>
+<section xid="3" props="page-margin-right:1.250000in; page-margin-left:0.750000in; page-margin-top:0.930556in; page-margin-bottom:0.194444in">
+<p style="Title" xid="4" props="margin-top:4.100000pt">OVIO</p>
+<p style="Title" xid="5">Developer Daily Report</p>
+<p style="Body Text" xid="6" props="text-indent:0.000000pt; margin-top:14.250000pt; margin-left:17.500000pt">Developer: Mosho</p>
+<p style="Body Text" xid="7" props="text-indent:0.000000pt; line-height:1.000000; margin-left:17.500000pt; margin-right:247.100000pt">Project: OVIO Core Platform Date: 2026-01-02</p>
+<p xid="8" props="text-align:left; text-indent:0.000000pt; margin-top:0.000000pt; margin-right:0.000000pt; margin-left:17.500000pt"><c props="font-size:12.000000pt">────────────────────────────────</c></p>
+<p style="Heading 1" xid="9">WHAT I WORKED ON TODAY</p>
+<p level="0" listid="100" parentid="0" style="List Paragraph" xid="10" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"><field level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" xid="11" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"></field><c level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL">	Fixed the composer result code ui</c></p>
+<p style="Heading 1" xid="12" props="margin-top:13.900000pt">BUGS / FIXES</p>
+<p level="0" listid="100" parentid="0" style="List Paragraph" xid="13" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"><field level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" xid="14" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"></field><c level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL">	</c><c props="font-size:12.000000pt">fixed the result of the msg2go</c></p>
+<p style="Heading 1" xid="15" props="margin-top:13.950000pt">PLAN FOR TOMORROW</p>
+<p level="0" listid="100" parentid="0" style="List Paragraph" xid="16" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"><field level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" xid="17" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"></field><c level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL">	Add a simple relation imprlementation in roller for a button for exmple</c></p>
+<p level="0" listid="100" parentid="0" style="List Paragraph" xid="18" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"><field level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" xid="19" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"></field><c level="0" listid="100" parentid="0" style="List Paragraph" type="list_label" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL">	</c><c props="font-size:12.000000pt">Add </c><c props="font-size:12.000000pt">in route deploy the platform of export selection </c></p>
+<p level="0" listid="100" parentid="0" style="List Paragraph" xid="1" props="margin-top:0.000000pt; margin-left:28.350000pt; tabstops:0.393750in/L0; margin-bottom:0.000000pt; text-indent:-10.900000pt; text-align:left; margin-right:0.000000pt; field-font:NULL"><c props="list-tag:1000; font-size:12.000000pt"></c><field type="list_label" xid="2" props="width:0in; font-family:Bookman Old Style; display:inline; font-style:normal; font-weight:normal; bgcolor:transparent; lang:ar-SA; text-position:normal; text-transform:none; homogeneous:1; color:000000; font-variant:normal; text-decoration:none; font-size:12.000000pt; height:0in; list-style:None; font-stretch:normal"></field><c props="width:0in; font-family:Bookman Old Style; display:inline; font-style:normal; font-weight:normal; bgcolor:transparent; lang:ar-SA; text-position:normal; text-transform:none; homogeneous:1; color:000000; font-variant:normal; text-decoration:none; font-size:12.000000pt; height:0in; list-style:None; font-stretch:normal">	make the build after export </c></p>
+</section>
+</abiword>
