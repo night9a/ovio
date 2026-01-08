@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from ..extensions import db
 from ..models import User
-from ..services import SnapshotService,SnapshotError
+from ..services.snapshot_service import SnapshotService,SnapshotError
 from ..headers.auth_header import require_auth
 
 bp = Blueprint("snapshot", __name__, url_prefix="/snapshot")

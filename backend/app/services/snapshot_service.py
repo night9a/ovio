@@ -7,7 +7,7 @@ class SnapshotError(Exception):
 class SnapshotService():
     def create(data):
         data['project_id']
-        tree
+        tree = "aw"
         snap = Snapshot(project_id,title,folder_id,snapshot=tree)
         db.session.add(snap)
         db.session.commit()
