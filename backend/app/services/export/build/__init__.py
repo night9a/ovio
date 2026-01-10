@@ -1,17 +1,17 @@
-from . import dekstop,mobile,web
+from . import desktop, mobile, web
 
 _PLATFORMS = {
-    "dekstop": desktop.build,
+    "desktop": desktop.build,
     "mobile": mobile.build,
     "web": web.build,
 }
 
-def build(plat: name):
+def build(plat: str, pdir: str):
     key = plat.strip().lower()
-
     try:
         handler = _PLATFORMS[key]
     except KeyError:
         raise ValueError(f"Unknown platform: {key}")
 
-    handler()
+    handler(pdir)
+

@@ -10,14 +10,20 @@ bp = Blueprint("deploy", __name__, url_prefix="/deploy")
 
 
 @bp.route("/<string:project_id>/deploy", methods=["POST"])
-#@require_auth CURRENTLY TESTING
+# @require_auth  # CURRENTLY TESTING
 def deploy_project(project_id):
-    #check if project exist in user and have permission
     data = request.get_json() or {}
+
     if data:
-        a = DeployService.deploy_project(project_id,data)
-        return a 
+        exec_path = DeployService.deploy_project(project_id, data)
+        # return success JSON
+        return jsonify({
+            "success": True,
+            "exec_path": str(exec_path)  # optional: path to the built executable
+        })
+
     return jsonify({"error": "project not found"}), 404
+
 
 #TODO to move into deploy route
 """

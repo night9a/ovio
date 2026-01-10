@@ -14,10 +14,10 @@ class DeployService:
         runner = msg2go.Run(pid)
         result_path = runner.run()
         if target_arch == "web":
-            exec_path = build("web") 
+            exec_path = build("web",result_path) 
         if target_arch == "mobile":
-            exec_path = build("mobile")
+            exec_path = build("mobile",result_path)
         if target_arch == "desktop":
-            exec_path = build("desktop")
+            exec_path = build("desktop",result_path)
         return exec_path
 

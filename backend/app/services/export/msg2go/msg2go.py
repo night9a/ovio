@@ -64,20 +64,47 @@ class Run:
     def run(self):
         """
         Build UI → write main.go to export directory
+        Create go.mod if missing
         """
         go_code = self.call_composer()
-
+    
         dirs = self.get_project_dirs()
         export_dir = dirs["export"]
         os.makedirs(export_dir, exist_ok=True)
-
+    
+        # Write main.go
         main_go_path = os.path.join(export_dir, "main.go")
-
         with open(main_go_path, "w", encoding="utf-8") as f:
             f.write(go_code)
-
-        return main_go_path
-
+    
+        # -------------------------
+        # Ensure go.mod exists
+        # -------------------------
+        go_mod_path = os.path.join(export_dir, "go.mod")
+        if not os.path.exists(go_mod_path):
+            go_mod_template = """module gio.test
+    
+    go 1.24.9
+    
+    require gioui.org v0.9.0
+    
+    require (
+        gioui.org/shader v1.0.8 // indirect
+        github.com/ajstarks/giocanvas v0.0.0-20250916212156-784777e05a11 // indirect
+        github.com/go-text/typesetting v0.3.0 // indirect
+        golang.org/x/exp/shiny v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
+        golang.org/x/image v0.26.0 // indirect
+        golang.org/x/sys v0.33.0 // indirect
+        golang.org/x/text v0.24.0 // indirect
+    )
+    """
+            with open(go_mod_path, "w", encoding="utf-8") as f:
+                f.write(go_mod_template)
+            print(f"go.mod created at {go_mod_path}")
+    
+        return export_dir
+    
+    
        
         
     
