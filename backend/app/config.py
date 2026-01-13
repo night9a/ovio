@@ -16,6 +16,9 @@ class Config:
     RESET_TOKEN_EXPIRES = int(os.environ.get("RESET_TOKEN_EXPIRES", 3600 * 24))
     GOOGLE_CLIENT_ID = "814124596804-o07r8uokfces627sar5l0gk1ihacp1u5.apps.googleusercontent.com"
     GITHUB_CLINET_ID = ""
+    MJ_APIKEY_PUBLIC="d6add4869a76c58daf0be4e6aea63bae"
+    MJ_APIKEY_PRIVATE="5b5cb65d4a7d19fa9f9d551b69f9607f"
+    MAIL = "nightxcros@gmail.com"
 class DevelopmentConfig(Config):
     DEBUG = True
 

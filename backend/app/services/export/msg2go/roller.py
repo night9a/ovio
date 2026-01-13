@@ -7,8 +7,8 @@ from .components import COMPONENT_REGISTRY
 
 
 class Roller:
-    def __init__(self, ui: dict):
-        self.ui = ui
+    def __init__(self, relation: dict):
+        self.relation = relation
         self.components = []
         self.imports: Dict[str, List[str]] = {}
         self.window = None

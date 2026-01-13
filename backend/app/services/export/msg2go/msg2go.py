@@ -15,21 +15,24 @@ class Run:
     # -------------------------
 
     def get_project_dirs(self):
-        storage_root = ProjectService.get_storage_root()
-
-        proj_dir = os.path.join(storage_root, str(self.pid), "autosave")
+        projects_root = ProjectService.get_storage_root()
+        # /mnt/hdd/projects/ovio/backend/storage/projects
+    
+        storage_base = os.path.dirname(projects_root)
+        # /mnt/hdd/projects/ovio/backend/storage
+    
+        proj_dir = os.path.join(projects_root, str(self.pid), "autosave")
         ui_dir = os.path.join(proj_dir, "ui")
         relation_dir = os.path.join(proj_dir, "relation")
-
-        export_dir = os.path.join(
-            storage_root, str(self.pid), "export"
-        )
-
+    
+        export_dir = os.path.join(storage_base, "export/source", str(self.pid))
+    
         return {
             "ui": ui_dir,
             "relation": relation_dir,
             "export": export_dir,
         }
+    
 
     # -------------------------
     # Load msgpack
@@ -70,6 +73,7 @@ class Run:
     
         dirs = self.get_project_dirs()
         export_dir = dirs["export"]
+        print(export_dir)
         os.makedirs(export_dir, exist_ok=True)
     
         # Write main.go

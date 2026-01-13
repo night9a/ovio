@@ -12,7 +12,7 @@ from .plugin import Plugin
 __all__ = [
     "User",
     "Project",
-    "Relation",
+    #"Relation",
     "PublicAsset",
     "Snapshot",
     "Template",

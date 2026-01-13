@@ -1,6 +1,7 @@
 from .export.msg2go import msg2go
 from .export.build import build
-class DeployError():
+
+class DeployError(Exception):
     pass
 
 class DeployService:
