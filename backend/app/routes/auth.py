@@ -12,7 +12,7 @@ from ..extensions import db
 from ..models import User
 from ..headers.auth_header import require_auth
 from ..services.auth_service import AuthService, AuthError
-
+import requests
 #from functools import wraps
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -110,6 +110,75 @@ def google_login():
         }
     })
 
+
+
+@bp.route("/github", methods=["POST"])
+def github_login():
+    data = request.get_json() or {}
+    access_token = data.get("token")
+
+    if not access_token:
+        return jsonify({"error": "missing github token"}), 400
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    # 1. Get GitHub user profile
+    user_resp = requests.get("https://api.github.com/user", headers=headers)
+    if user_resp.status_code != 200:
+        return jsonify({"error": "invalid github token"}), 401
+
+    gh_user = user_resp.json()
+    github_id = str(gh_user["id"])
+    username = gh_user["login"]
+    name = gh_user.get("name")
+
+    # 2. Get primary email
+    email_resp = requests.get("https://api.github.com/user/emails", headers=headers)
+    if email_resp.status_code != 200:
+        return jsonify({"error": "cannot fetch github email"}), 401
+
+    emails = email_resp.json()
+    primary_email = next(
+        (e["email"].lower() for e in emails if e["primary"] and e["verified"]),
+        None
+    )
+
+    if not primary_email:
+        return jsonify({"error": "no verified email found"}), 400
+
+    # 3. Try github_id
+    user = User.query.filter_by(github_id=github_id).first()
+
+    # 4. Account linking by email
+    if not user:
+        user = User.query.filter_by(email=primary_email).first()
+        if user:
+            user.github_id = github_id
+        else:
+            user = User(
+                email=primary_email,
+                username=username,
+                name=name,
+                github_id=github_id,
+            )
+            db.session.add(user)
+
+        db.session.commit()
+
+    token = user.generate_auth_token()
+
+    return jsonify({
+        "token": token,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "name": user.name,
+        }
+    })
 
 @bp.route("/me")
 @require_auth
