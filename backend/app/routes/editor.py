@@ -94,13 +94,28 @@ def save_project_state(project_id):
 
     try:
         # Convert frontend canvas to msgpack format
+        current_app.logger.info(f'POST /editor/{project_id}/state - Saving {len(canvas)} canvas components')
+        
+        # Preserve existing window config
+        existing_ui = MsgSerializer(ui_main_path)._load()
+        existing_window = existing_ui.get("window", {}) if existing_ui else {}
+        
         ui_dict, relation_dict = EditorConverter.canvas_to_msgpack(canvas)
+        
+        # Merge existing window config into new ui_dict
+        if existing_window:
+            ui_dict["window"] = {**existing_window, **ui_dict.get("window", {})}
+        
+        current_app.logger.info(f'POST /editor/{project_id}/state - Converted to {len(ui_dict.get("elements", []))} UI elements')
+        current_app.logger.info(f'POST /editor/{project_id}/state - Converted to {len(relation_dict.get("scripts", []))} relation scripts')
         
         # Save to msgpack files
         MsgSerializer(ui_main_path)._save(ui_dict)
         MsgSerializer(relation_main_path)._save(relation_dict)
+        
+        current_app.logger.info(f'POST /editor/{project_id}/state - Saved successfully')
     except Exception as e:
-        current_app.logger.error('failed to write state: %s', e)
+        current_app.logger.error(f'POST /editor/{project_id}/state - failed to write state: {e}', exc_info=True)
         return jsonify({"error": "failed to save state"}), 500
 
     # Broadcast to other collaborators (send original data format for compatibility)

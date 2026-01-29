@@ -39,6 +39,9 @@ func main() {
 					return material.Button(th, &btn_1, "Click Me").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
+					return material.Label(th, unit.Sp(16), "Sample Text").Layout(gtx)
+				}),
+				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
 					if actionMessage != "" {
 						return material.Body1(th, actionMessage).Layout(gtx)
 					}

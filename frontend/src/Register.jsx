@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Sparkles, Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, User, Briefcase, Check } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -26,9 +27,34 @@ export default function RegisterPage() {
   };
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [googleClientId, setGoogleClientId] = useState('');
   const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000';
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const err = searchParams.get('error');
+    if (token) {
+      localStorage.setItem('token', token);
+      window.history.replaceState({}, '', window.location.pathname);
+      navigate('/projects');
+      return;
+    }
+    if (err) {
+      const msg = err === 'invalid_github_token' ? 'GitHub sign-in failed.' : err === 'no_verified_email' ? 'No verified email on GitHub.' : 'Sign-in failed.';
+      setError(msg);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [searchParams, navigate]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/auth/config`)
+      .then((r) => r.json())
+      .then((data) => setGoogleClientId(data.google_client_id || import.meta.env.VITE_GOOGLE_CLIENT_ID || ''))
+      .catch(() => setGoogleClientId(import.meta.env.VITE_GOOGLE_CLIENT_ID || ''));
+  }, [API_BASE]);
 
   const handleSubmit = async () => {
     setError('');
@@ -199,15 +225,65 @@ export default function RegisterPage() {
           {step === 1 && (
             <>
               <div className="space-y-3 mb-6">
-                <button className="w-full py-3 px-4 border-2 border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 group">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const redirectUri = `${window.location.origin}/register`;
+                    window.location.href = `${API_BASE}/auth/github/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`;
+                  }}
+                  className="w-full py-3 px-4 border-2 border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 group"
+                >
                   <Github className="w-5 h-5" />
                   <span className="font-medium">Continue with GitHub</span>
                 </button>
-                <button className="w-full py-3 px-4 border-2 border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center gap-3 group">
-                  <Chrome className="w-5 h-5" />
-                  <span className="font-medium">Continue with Google</span>
-                </button>
+                {googleClientId ? (
+                  <GoogleOAuthProvider clientId={googleClientId}>
+                    <GoogleLogin
+                      onSuccess={async (credentialResponse) => {
+                        const token = credentialResponse?.credential;
+                        if (!token) return;
+                        setLoading(true);
+                        setError('');
+                        try {
+                          const res = await fetch(`${API_BASE}/auth/google`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || 'Google sign-in failed');
+                          if (data.token) {
+                            localStorage.setItem('token', data.token);
+                            navigate('/projects');
+                          } else throw new Error('No token returned');
+                        } catch (err) {
+                          setError(err.message || 'Google sign-in failed');
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      onError={() => setError('Google sign-in failed')}
+                      useOneTap={false}
+                      theme="outline"
+                      size="large"
+                      text="continue_with"
+                      shape="rectangular"
+                      width="100%"
+                      className="w-full py-3 px-4 border-2 border-gray-200 rounded-lg hover:border-gray-300 hover:bg-gray-50 transition-all flex items-center justify-center gap-3"
+                    />
+                  </GoogleOAuthProvider>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-3 px-4 border-2 border-gray-200 rounded-lg opacity-60 flex items-center justify-center gap-3"
+                  >
+                    <Chrome className="w-5 h-5" />
+                    <span className="font-medium">Continue with Google (not configured)</span>
+                  </button>
+                )}
               </div>
+              {error && step === 1 && <div className="mb-4 text-sm text-red-600">{error}</div>}
 
               {/* Divider */}
               <div className="relative mb-6">

@@ -47,6 +47,10 @@ class Run:
 
         ui = MsgSerializer(ui_main_path)._load()
         relation = MsgSerializer(relation_main_path)._load()
+        
+        # Debug logging for deploy
+        current_app.logger.info(f'msg2go.get_src({self.pid}) - UI elements: {len(ui.get("elements", []))}')
+        current_app.logger.info(f'msg2go.get_src({self.pid}) - Relation scripts: {len(relation.get("scripts", []))}')
 
         return ui, relation
 

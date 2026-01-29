@@ -31,16 +31,21 @@ class Composer:
             self._extract_window_options()
 
         # Elements
-        for i, elem in enumerate(self.ui.get("elements", [])):
+        elements = self.ui.get("elements", [])
+        for i, elem in enumerate(elements):
             ctype = elem.get("type")
             if not ctype:
-                raise ValueError("element missing 'type'")
+                raise ValueError(f"element {i} missing 'type'")
             if ctype == "button" and "var_name" not in elem:
                 elem = {**elem, "var_name": elem.get("var_name") or f"btn_{i}"}
             component_cls = COMPONENT_REGISTRY.get(ctype)
             if not component_cls:
-                raise ValueError(f"unknown component type: {ctype}")
+                raise ValueError(f"unknown component type '{ctype}' at element {i}")
             self.components.append(component_cls.from_spec(elem))
+        
+        # Ensure we processed all elements
+        if len(self.components) != len(elements):
+            raise RuntimeError(f"Composer processed {len(self.components)}/{len(elements)} elements. Some were skipped.")
 
     def _extract_window_options(self):
         """Extract window options from the window object"""

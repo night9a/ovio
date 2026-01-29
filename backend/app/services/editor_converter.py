@@ -25,6 +25,7 @@ class EditorConverter:
         """
         elements = []
         scripts = []
+        processed_count = 0
         
         for comp in canvas:
             comp_type = comp.get("id", "").split("-")[0]  # e.g., "text", "button"
@@ -46,10 +47,18 @@ class EditorConverter:
                 # Check if component has actions configured
                 actions = comp.get("actions", [])
                 if actions and len(actions) > 0:
-                    # Generate action_id for this button
-                    action_id = short_id()
-                    # Convert first action to relation script
+                    # Check if action already has an ID (from previous save/load cycle)
+                    # Extract action_id from action.id if it follows pattern "action-{action_id}"
+                    existing_action_id = None
                     first_action = actions[0]
+                    action_id_str = first_action.get("id", "")
+                    if action_id_str.startswith("action-"):
+                        existing_action_id = action_id_str.replace("action-", "")
+                    
+                    # Use existing action_id if valid, otherwise generate new one
+                    action_id = existing_action_id if existing_action_id else short_id()
+                    
+                    # Convert first action to relation script
                     script = EditorConverter._action_to_script(first_action, action_id)
                     if script:
                         scripts.append(script)
@@ -64,12 +73,23 @@ class EditorConverter:
                     "type": "text",  # Input not directly supported, convert to text
                     "value": props.get("placeholder", "Enter text...")
                 })
-            # Other types (image, card, etc.) can be added as needed
+            else:
+                # Unknown component type - log but don't skip (could be a new type)
+                # For now, skip unknown types to avoid breaking the build
+                continue
+            
+            processed_count += 1
         
+        # Ensure we processed all components (sanity check)
+        if processed_count != len(canvas):
+            import logging
+            logging.warning(f"EditorConverter: Processed {processed_count}/{len(canvas)} components. Some may have been skipped.")
+        
+        # Preserve existing window config if available, otherwise use defaults
         ui_dict = {
             "page": "main",
             "window": {
-                "title": "ibrahim app"  # Default, can be made configurable
+                "title": "ibrahim app"  # Default, can be made configurable later
             },
             "elements": elements
         }

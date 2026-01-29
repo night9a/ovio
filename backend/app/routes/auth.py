@@ -7,13 +7,16 @@ Notes:
 """
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, redirect
 from ..extensions import db
 from ..models import User
 from ..headers.auth_header import require_auth
 from ..services.auth_service import AuthService, AuthError
 import requests
-#from functools import wraps
+import secrets
+import base64
+import json
+from urllib.parse import urlencode
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -87,13 +90,14 @@ def google_login():
         if user:
             user.google_id = google_id  # link account
         else:
-            # 3. Create new user
+            # 3. Create new user (OAuth-only: set unguessable password)
             user = User(
                 email=email,
                 username=email.split("@")[0],
                 name=name,
                 google_id=google_id,
             )
+            user.set_password(secrets.token_urlsafe(32))
             db.session.add(user)
 
         db.session.commit()
@@ -164,6 +168,7 @@ def github_login():
                 name=name,
                 github_id=github_id,
             )
+            user.set_password(secrets.token_urlsafe(32))
             db.session.add(user)
 
         db.session.commit()
@@ -179,6 +184,120 @@ def github_login():
             "name": user.name,
         }
     })
+
+
+@bp.route("/github/authorize", methods=["GET"])
+def github_authorize():
+    """Redirect user to GitHub OAuth; state carries frontend redirect_uri."""
+    redirect_uri = request.args.get("redirect_uri", "").strip()
+    if not redirect_uri:
+        redirect_uri = (current_app.config.get("FRONTEND_URL") or "").strip().rstrip("/") or request.referrer
+    if not redirect_uri:
+        return jsonify({"error": "redirect_uri required (or set FRONTEND_URL)"}), 400
+    client_id = current_app.config.get("GITHUB_CLIENT_ID")
+    if not client_id:
+        return jsonify({"error": "GitHub OAuth not configured"}), 503
+    base = (current_app.config.get("GITHUB_CALLBACK_BASE") or "").strip().rstrip("/")
+    if not base:
+        base = request.host_url.rstrip("/")
+    backend_callback = base + "/auth/github/callback"
+    state = base64.urlsafe_b64encode(json.dumps({"redirect_uri": redirect_uri}).encode()).decode()
+    params = {
+        "client_id": client_id,
+        "redirect_uri": backend_callback,
+        "scope": "user:email",
+        "state": state,
+    }
+    return redirect("https://github.com/login/oauth/authorize?" + urlencode(params))
+
+
+@bp.route("/github/callback", methods=["GET"])
+def github_callback():
+    """Exchange code for access token, find/create user, redirect to frontend with token."""
+    code = request.args.get("code")
+    state = request.args.get("state")
+    if not code:
+        return jsonify({"error": "missing code"}), 400
+    client_id = current_app.config.get("GITHUB_CLIENT_ID")
+    client_secret = current_app.config.get("GITHUB_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return jsonify({"error": "GitHub OAuth not configured"}), 503
+    base = (current_app.config.get("GITHUB_CALLBACK_BASE") or "").strip().rstrip("/")
+    if not base:
+        base = request.host_url.rstrip("/")
+    redirect_uri = base + "/auth/github/callback"
+    resp = requests.post(
+        "https://github.com/login/oauth/access_token",
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "code": code,
+            "redirect_uri": redirect_uri,
+        },
+        headers={"Accept": "application/json"},
+    )
+    if resp.status_code != 200:
+        return jsonify({"error": "GitHub token exchange failed"}), 502
+    data = resp.json()
+    access_token = data.get("access_token")
+    if not access_token:
+        return jsonify({"error": "no access_token from GitHub"}), 502
+    try:
+        frontend_redirect = request.host_url
+        if state:
+            decoded = base64.urlsafe_b64decode(state.encode())
+            frontend_redirect = json.loads(decoded).get("redirect_uri", frontend_redirect)
+    except Exception:
+        frontend_redirect = request.host_url
+    # Reuse same logic as POST /auth/github
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.github+json",
+    }
+    user_resp = requests.get("https://api.github.com/user", headers=headers)
+    if user_resp.status_code != 200:
+        return redirect(frontend_redirect + "?error=invalid_github_token")
+    gh_user = user_resp.json()
+    github_id = str(gh_user["id"])
+    username = gh_user["login"]
+    name = gh_user.get("name")
+    email_resp = requests.get("https://api.github.com/user/emails", headers=headers)
+    if email_resp.status_code != 200:
+        return redirect(frontend_redirect + "?error=github_email_failed")
+    emails = email_resp.json()
+    primary_email = next(
+        (e["email"].lower() for e in emails if e["primary"] and e["verified"]),
+        None,
+    )
+    if not primary_email:
+        return redirect(frontend_redirect + "?error=no_verified_email")
+    user = User.query.filter_by(github_id=github_id).first()
+    if not user:
+        user = User.query.filter_by(email=primary_email).first()
+        if user:
+            user.github_id = github_id
+        else:
+            user = User(
+                email=primary_email,
+                username=username,
+                name=name,
+                github_id=github_id,
+            )
+            user.set_password(secrets.token_urlsafe(32))
+            db.session.add(user)
+        db.session.commit()
+    token = user.generate_auth_token()
+    sep = "&" if "?" in frontend_redirect else "?"
+    return redirect(frontend_redirect + sep + "token=" + token)
+
+
+@bp.route("/config")
+def auth_config():
+    """Public OAuth client config for frontend (e.g. Google client ID)."""
+    return jsonify({
+        "google_client_id": current_app.config.get("GOOGLE_CLIENT_ID") or "",
+    })
+
 
 @bp.route("/me")
 @require_auth
