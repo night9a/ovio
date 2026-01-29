@@ -7,15 +7,15 @@ TARGETS = [
     ("js", "wasm", "wasm"),
 ]
 
-def build(pdir: str) -> bool:
+def build(pdir: str) -> str:
     pdir = Path(pdir).resolve()
     print("BUILD DIR (source):", pdir)
 
-    # pdir = storage/projects/<pid>/export
-    pid = pdir.parent.name  # <pid>
+    # pdir = backend/storage/export/source/<pid>
+    pid = pdir.name
 
-    # storage/projects/export/build/<pid>
-    build_root = pdir.parents[2] / "export" / "build" / pid
+    # backend/storage/export/build/<pid>
+    build_root = pdir.parent.parent / "build" / pid
     build_root.mkdir(parents=True, exist_ok=True)
 
     print("BUILD OUTPUT DIR:", build_root)
@@ -72,5 +72,5 @@ def build(pdir: str) -> bool:
     else:
         print("Warning: wasm_exec.js not found, ensure Go installation includes misc/wasm")
 
-    return True
+    return str(build_root)
 

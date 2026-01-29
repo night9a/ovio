@@ -2,13 +2,14 @@
 Composer: builds a fully working Gio Go file from msgpack UI description
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 from .components import COMPONENT_REGISTRY
 
 
 class Composer:
-    def __init__(self, ui: dict):
+    def __init__(self, ui: dict, action_handlers: Optional[Dict[str, str]] = None):
         self.ui = ui
+        self.action_handlers = action_handlers or {}
         self.components = []
         self.imports: Dict[str, List[str]] = {}
         self.window = None
@@ -30,10 +31,12 @@ class Composer:
             self._extract_window_options()
 
         # Elements
-        for elem in self.ui.get("elements", []):
+        for i, elem in enumerate(self.ui.get("elements", [])):
             ctype = elem.get("type")
             if not ctype:
                 raise ValueError("element missing 'type'")
+            if ctype == "button" and "var_name" not in elem:
+                elem = {**elem, "var_name": elem.get("var_name") or f"btn_{i}"}
             component_cls = COMPONENT_REGISTRY.get(ctype)
             if not component_cls:
                 raise ValueError(f"unknown component type: {ctype}")
@@ -102,6 +105,11 @@ class Composer:
                 if sym not in self.imports[pkg]:
                     self.imports[pkg].append(sym)
 
+        if self.action_handlers:
+            self.imports.setdefault("gioui.org/widget/material", [])
+            if "Body1" not in self.imports["gioui.org/widget/material"]:
+                self.imports["gioui.org/widget/material"].append("Body1")
+
     # -------------------------
     # Go code assembly
     # -------------------------
@@ -120,10 +128,14 @@ class Composer:
         state_decls = []
         layout_calls = []
 
+        # Optional state for action responses (show_text / pop_msg)
+        if self.action_handlers:
+            state_decls.append("var actionMessage string")
+
         for comp in self.components:
             if hasattr(comp, "state_decl") and comp.state_decl():
                 state_decls.append(comp.state_decl())
-            layout_calls.append(comp.to_go())
+            layout_calls.append(comp.to_go(action_handlers=self.action_handlers))
 
         # Build layout block
         layout_block_lines = []
@@ -151,7 +163,21 @@ class Composer:
                 block_content + "\n" +
                 "\t\t\t\t}),"
             )
-        
+
+        # When we have action handlers, show actionMessage below the main content
+        if self.action_handlers:
+            action_msg_block = (
+                "\t\t\t\t\tif actionMessage != \"\" {\n"
+                "\t\t\t\t\t\treturn material.Body1(th, actionMessage).Layout(gtx)\n"
+                "\t\t\t\t\t}\n"
+                "\t\t\t\t\treturn layout.Dimensions{}"
+            )
+            layout_block_lines.append(
+                "\t\t\t\tlayout.Rigid(func(gtx layout.Context) layout.Dimensions {\n"
+                + action_msg_block + "\n"
+                + "\t\t\t\t}),"
+            )
+
         layout_block = "\n".join(layout_block_lines)
 
         # Build window creation code

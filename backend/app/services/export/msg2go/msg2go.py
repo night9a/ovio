@@ -4,6 +4,7 @@ from flask import current_app
 from ....utils.msg_serializer import MsgSerializer
 from ...project_service import ProjectService
 from .composer import Composer
+from .roller import Roller
 
 
 class Run:
@@ -50,24 +51,30 @@ class Run:
         return ui, relation
 
     # -------------------------
-    # Composer
+    # Roller: relation -> action_id -> handler snippets (getters from func/)
+    # -------------------------
+
+    def call_roller(self) -> dict:
+        _, relation = self.get_src()
+        return Roller(relation).build()
+
+    # -------------------------
+    # Composer: ui + action_handlers -> main.go source
     # -------------------------
 
     def call_composer(self) -> str:
-        ui, _ = self.get_src()
-        comp = Composer(ui)
+        ui, relation = self.get_src()
+        action_handlers = Roller(relation).build()
+        comp = Composer(ui, action_handlers=action_handlers)
         return comp.build()
-    #call_roller
-     #call_modular()
-    #call_pluger()
     # -------------------------
     # Runner
     # -------------------------
 
     def run(self):
         """
-        Build UI → write main.go to export directory
-        Create go.mod if missing
+        Build UI + actions (Roller) → write main.go to export directory.
+        Create go.mod if missing.
         """
         go_code = self.call_composer()
     

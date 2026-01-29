@@ -13,5 +13,5 @@ def build(plat: str, pdir: str):
     except KeyError:
         raise ValueError(f"Unknown platform: {key}")
 
-    handler(pdir)
+    return handler(pdir)
 

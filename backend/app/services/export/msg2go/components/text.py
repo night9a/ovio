@@ -19,6 +19,6 @@ class Text:
             "gioui.org/unit": ["Sp"],
         }
 
-    def to_go(self) -> str:
+    def to_go(self, **kwargs) -> str:
         # Fixed to return the label's layout dimensions
         return f'return material.Label(th, unit.Sp(16), "{self.value}").Layout(gtx)'
