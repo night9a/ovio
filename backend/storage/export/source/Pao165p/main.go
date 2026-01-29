@@ -18,7 +18,6 @@ func main() {
 
 		var ops op.Ops
 
-		var actionMessage string
 		var btn_1 widget.Clickable
 
 		th := material.NewTheme()
@@ -33,16 +32,7 @@ func main() {
 					return material.Label(th, unit.Sp(16), "Hello World").Layout(gtx)
 				}),
 				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					if btn_1.Clicked(gtx) {
-						actionMessage = "button clicked"
-					}
 					return material.Button(th, &btn_1, "Click Me").Layout(gtx)
-				}),
-				layout.Rigid(func(gtx layout.Context) layout.Dimensions {
-					if actionMessage != "" {
-						return material.Body1(th, actionMessage).Layout(gtx)
-					}
-					return layout.Dimensions{}
 				}),
 				)
 				ev.Frame(gtx.Ops)

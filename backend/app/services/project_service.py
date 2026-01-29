@@ -145,7 +145,7 @@ class ProjectService:
                         "action_id": action_id,
                         "response": {
                             "type": "show_text",
-                            "msg": "button clicked"
+                            "msg": "fuck you"
                         }
                     }
                 ]

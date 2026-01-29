@@ -12,7 +12,7 @@ from collections import defaultdict
 from ..services.project_service import ProjectService,ProjectError
 bp = Blueprint("projects", __name__, url_prefix="/projects")
 
-# In-memory presence tracking per project: {project_id: {sid: user_dict}}
+# In-memory presence tracking per project: {project_id(str): {sid: user_dict}}
 _project_presence = defaultdict(dict)
 
 
@@ -27,7 +27,7 @@ def _serialize_user(user: User):
     }
 
 
-def _broadcast_presence(project_id: int):
+def _broadcast_presence(project_id: str):
     """Emit the current presence list for a project to all clients in the room."""
     room = f"project_{project_id}"
     users = list(_project_presence.get(project_id, {}).values())
@@ -78,9 +78,9 @@ def create_project():
         )
     }), 201
 
-@bp.route("/<int:project_id>/collaborators", methods=["POST"])
+@bp.route("/<project_id>/collaborators", methods=["POST"])
 @require_auth
-def add_project_collaborator(project_id: int):
+def add_project_collaborator(project_id: str):
     """Allow a project owner to add a collaborator by email.
 
     For now this is a lightweight helper that simply verifies the user exists
@@ -117,7 +117,7 @@ def add_project_collaborator(project_id: int):
     return jsonify(user_data), 200
 
 
-@bp.route("/<int:project_id>", methods=["GET"])
+@bp.route("/<project_id>", methods=["GET"])
 @require_auth
 def get_project(project_id):
     """Get a specific project by ID."""
@@ -140,9 +140,8 @@ def get_project(project_id):
 # --- Socket.IO handlers for real-time collaboration ---
 @socketio.on('join_project')
 def socket_join_project(data):
-    try:
-        project_id = int(data.get('project_id'))
-    except Exception:
+    project_id = str(data.get("project_id") or "").strip()
+    if not project_id:
         return
     room = f"project_{project_id}"
     join_room(room)
@@ -161,9 +160,8 @@ def socket_join_project(data):
 
 @socketio.on('leave_project')
 def socket_leave_project(data):
-    try:
-        project_id = int(data.get('project_id'))
-    except Exception:
+    project_id = str(data.get("project_id") or "").strip()
+    if not project_id:
         return
     room = f"project_{project_id}"
     leave_room(room)
@@ -180,43 +178,19 @@ def socket_leave_project(data):
 @socketio.on('state_update')
 def socket_state_update(data):
     # Broadcast incoming state update to other clients in the room
-    try:
-        project_id = int(data.get('project_id'))
-    except Exception:
+    project_id = str(data.get("project_id") or "").strip()
+    if not project_id:
         return
     room = f"project_{project_id}"
     state = data.get('state')
     canvas = state.get('canvas', []) if state else []
-    
-    # Prevent clearing existing state with empty canvas
-    storage_root = os.path.abspath(os.path.join(current_app.root_path, '..', 'projects_storage'))
-    proj_dir = os.path.join(storage_root, str(project_id))
-    state_path = os.path.join(proj_dir, 'state.json')
-    
-    existing_state = None
-    if os.path.exists(state_path):
-        try:
-            with open(state_path, 'r', encoding='utf-8') as f:
-                existing_state = json.load(f)
-        except Exception:
-            pass
-    
-    # Only persist if: new state has content OR no existing state exists
-    if existing_state and existing_state.get('canvas') and len(existing_state.get('canvas', [])) > 0:
-        if not canvas or len(canvas) == 0:
-            # Don't overwrite existing content with empty state
-            current_app.logger.warning('Prevented clearing project state via socket: existing canvas has %d items, new canvas is empty', len(existing_state.get('canvas', [])))
-            return  # Don't broadcast or persist empty state
-    
+
+    # Avoid broadcasting a destructive empty canvas update.
+    if not canvas or len(canvas) == 0:
+        return
+
     # broadcast to room excluding sender
     socketio.emit('state_update', {'project_id': project_id, 'state': state}, room=room, include_self=False)
-    # persist to disk (best-effort, no auth over socket)
-    try:
-        os.makedirs(proj_dir, exist_ok=True)
-        with open(state_path, 'w', encoding='utf-8') as f:
-            json.dump(state, f)
-    except Exception:
-        current_app.logger.exception('failed to persist state from socket')
 
 
 @socketio.on("disconnect")
@@ -236,7 +210,7 @@ def socket_disconnect():
         _broadcast_presence(pid)
 
 
-@bp.route("/<int:project_id>", methods=["PUT"])
+@bp.route("/<project_id>", methods=["PUT"])
 @require_auth
 def update_project(project_id):
     """Update a project."""
@@ -270,7 +244,7 @@ def update_project(project_id):
     }), 200
 
 
-@bp.route("/<int:project_id>", methods=["DELETE"])
+@bp.route("/<project_id>", methods=["DELETE"])
 @require_auth
 def delete_project(project_id):
     """Delete a project."""
