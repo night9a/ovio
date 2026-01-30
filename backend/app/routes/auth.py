@@ -188,27 +188,34 @@ def github_login():
 
 @bp.route("/github/authorize", methods=["GET"])
 def github_authorize():
-    """Redirect user to GitHub OAuth; state carries frontend redirect_uri."""
-    redirect_uri = request.args.get("redirect_uri", "").strip()
-    if not redirect_uri:
-        redirect_uri = (current_app.config.get("FRONTEND_URL") or "").strip().rstrip("/") or request.referrer
-    if not redirect_uri:
-        return jsonify({"error": "redirect_uri required (or set FRONTEND_URL)"}), 400
+    # frontend redirect after login (internal use only)
+    frontend_redirect = request.args.get("redirect_uri", "").strip()
+    if not frontend_redirect:
+        frontend_redirect = current_app.config.get("FRONTEND_URL")
+
+    if not frontend_redirect:
+        return jsonify({"error": "redirect_uri required"}), 400
+
     client_id = current_app.config.get("GITHUB_CLIENT_ID")
     if not client_id:
         return jsonify({"error": "GitHub OAuth not configured"}), 503
-    base = (current_app.config.get("GITHUB_CALLBACK_BASE") or "").strip().rstrip("/")
-    if not base:
-        base = request.host_url.rstrip("/")
-    backend_callback = base + "/auth/github/callback"
-    state = base64.urlsafe_b64encode(json.dumps({"redirect_uri": redirect_uri}).encode()).decode()
+
+    backend_callback = "http://localhost:5000/auth/github/callback"
+
+    state = base64.urlsafe_b64encode(
+        json.dumps({"redirect_uri": frontend_redirect}).encode()
+    ).decode()
+
     params = {
         "client_id": client_id,
         "redirect_uri": backend_callback,
         "scope": "user:email",
         "state": state,
     }
-    return redirect("https://github.com/login/oauth/authorize?" + urlencode(params))
+
+    return redirect(
+        "https://github.com/login/oauth/authorize?" + urlencode(params)
+    )
 
 
 @bp.route("/github/callback", methods=["GET"])

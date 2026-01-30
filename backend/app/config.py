@@ -20,8 +20,9 @@ class Config:
     # Base URL of this backend (no trailing slash). Used as GitHub OAuth redirect_uri base.
     # Must match exactly what you set in GitHub OAuth App → Authorization callback URL.
     # Example: http://localhost:5000 or https://api.yourdomain.com
-    GITHUB_CALLBACK_BASE = os.environ.get("GITHUB_CALLBACK_BASE", "")
-    # Default frontend URL when redirect_uri is not sent (e.g. http://localhost:5173)
+    GITHUB_CALLBACK_BASE = "http://localhost:5000"
+    GITHUB_CALLBACK_URL = f"{GITHUB_CALLBACK_BASE}/auth/oauth/github/callback"
+        # Default frontend URL when redirect_uri is not sent (e.g. http://localhost:5173)
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
     MJ_APIKEY_PUBLIC="d6add4869a76c58daf0be4e6aea63bae"
     MJ_APIKEY_PRIVATE="5b5cb65d4a7d19fa9f9d551b69f9607f"
