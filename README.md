@@ -5,6 +5,7 @@ export LIBGL_ALWAYS_SOFTWARE=1
 
 command to run gio
 
+add a export into web and host into table and work link generated
 
 use components saved as html css 
 
