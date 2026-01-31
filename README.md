@@ -22,3 +22,25 @@ they can't leave
 make a compiled gioui components with ability like take parameter lets say buttib
 (take font,size ,fontsize,color) and while in online editing show it and merge 
 them into full ui and so on for hot reload
+
+
+
+4 layout blocks: Page, Vertical, Horizontal, Stack
+
+3 size options: auto, fill, max (px)
+
+Simple alignment: left, center, right, top, bottom
+
+Automatic mobile behavior: horizontal → vertical when screen is small
+
+Internally:
+
+Use Flexbox/Grid
+
+Handle breakpoints automatically
+
+Recalculate layout on resize
+
+
+
+add a blueprint view in editor 
