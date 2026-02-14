@@ -1,2 +1,2 @@
 #!/bin/sh
-exec lua54 server.lua
+exec lua server.lua
