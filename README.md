@@ -39,3 +39,8 @@ Recalculate layout on resize
 
 
 add a blueprint view in editor 
+
+
+one of most importtant thing in the product (my ovio website) is to take care
+of detials people adore and love details ,and user expericen should be great
+
