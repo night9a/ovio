@@ -44,3 +44,9 @@ add a blueprint view in editor
 one of most importtant thing in the product (my ovio website) is to take care
 of detials people adore and love details ,and user expericen should be great
 
+use this in components folder structure in the future 
+Widget
+ ├─ Layout
+ ├─ Control
+ ├─ Navigation
+ └─ Display
